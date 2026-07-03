@@ -69,40 +69,27 @@ jobs:
 
           cd CESI-CI-CD-kubernetes/overlays/dev
 
-          echo "OWNER value: ${{ env.OWNER }}"
-          echo "Running on branch: $(git rev-parse --abbrev-ref HEAD)"
-          echo "Files in overlays/dev:"
-          ls -la
+          echo "OWNER: ${{ env.OWNER }}"
+          echo "SHA: ${{ github.sha }}"
 
           if [ ! -f deployment.yaml ]; then
-            echo "Error: deployment.yaml not found in overlays/dev"
+            echo "Error: deployment.yaml not found"
             exit 1
           fi
 
-          echo "----- deployment.yaml (before) -----"
+          echo "--- Before ---"
           cat deployment.yaml
-          echo "-----------------------------------"
 
-          # Remplacement robuste : remplace l'image avec owner et tag
           sed -E -i.bak \
-            "s|(image:\s*['\"]?)ghcr\.io/[^/]*/[^'\" ]+(['\"]?)|\1ghcr.io/${{ env.OWNER }}/collector-shop:dev\2|g" \
-            deployment.yaml || true
+            "s|(image:\s*['\"]?)ghcr\.io/[^/]*/[^'\" ]+(['\"]?)|\1ghcr.io/${{ env.OWNER }}/collector-shop:${{ github.sha }}\2|g" \
+            deployment.yaml
 
-          echo "----- deployment.yaml (after) -----"
+          echo "--- After ---"
           cat deployment.yaml
-          echo "----------------------------------"
 
-          echo "Showing git diff (if any):"
-          git --no-pager diff -- deployment.yaml || true
-
-          # Configure git user (IMPORTANT)
           git config user.email "action@github.com"
           git config user.name "github-actions"
 
           git add deployment.yaml
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Update collector-shop image to ghcr.io/${{ env.OWNER }}/collector-shop:dev"
-            git push
-          fi
+          git diff --cached && git commit -m "Update collector-shop image to ghcr.io/${{ env.OWNER }}/collector-shop:${{ github.sha }}" || echo "No changes"
+          git push
