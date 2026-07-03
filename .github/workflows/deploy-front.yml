@@ -52,6 +52,10 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Set lowercase OWNER env var
+        run: |
+          echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Checkout Kubernetes repo
         uses: actions/checkout@v4
         with:
@@ -65,12 +69,10 @@ jobs:
 
           cd CESI-CI-CD-kubernetes/overlays/dev
 
+          echo "OWNER value: ${{ env.OWNER }}"
           echo "Running on branch: $(git rev-parse --abbrev-ref HEAD)"
           echo "Files in overlays/dev:"
           ls -la
-
-          echo "Searching for occurrences of 'collector-shop' or 'ghcr.io' (debug):"
-          grep -R --line-number -E "collector-shop|ghcr\.io" . || echo "No occurrences found."
 
           if [ ! -f deployment.yaml ]; then
             echo "Error: deployment.yaml not found in overlays/dev"
@@ -78,25 +80,24 @@ jobs:
           fi
 
           echo "----- deployment.yaml (before) -----"
-          sed -n '1,200p' deployment.yaml || true
+          cat deployment.yaml
           echo "-----------------------------------"
 
-          # Remplacement robuste :
-          # - accepte guillemets ou pas,
-          # - remplace les images qui contiennent 'collector-shop' OU toute image ghcr.io/<owner>/... 
-          #   pour éviter d'oublier un pattern.
-          # Créé un backup deployment.yaml.bak
+          # Remplacement robuste : remplace l'image avec owner et tag
           sed -E -i.bak \
-            -e "s|(image:\s*['\"]?).*collector-shop[^'\" ]*(['\"]?)|\1ghcr.io/${{ env.OWNER }}/collector-shop:dev\2|g" \
-            -e "s|(image:\s*['\"]?)ghcr\.io/[^/]+/[^'\" ]+(['\"]?)|\1ghcr.io/${{ env.OWNER }}/collector-shop:dev\2|g" \
+            "s|(image:\s*['\"]?)ghcr\.io/[^/]*/[^'\" ]+(['\"]?)|\1ghcr.io/${{ env.OWNER }}/collector-shop:dev\2|g" \
             deployment.yaml || true
 
           echo "----- deployment.yaml (after) -----"
-          sed -n '1,200p' deployment.yaml || true
+          cat deployment.yaml
           echo "----------------------------------"
 
           echo "Showing git diff (if any):"
           git --no-pager diff -- deployment.yaml || true
+
+          # Configure git user (IMPORTANT)
+          git config user.email "action@github.com"
+          git config user.name "github-actions"
 
           git add deployment.yaml
           if git diff --cached --quiet; then
