@@ -1,5 +1,145 @@
+# ============================================================================
+# .NET / Aspire
+# ============================================================================
 bin/
 obj/
-/packages/
+*.user
+*.suo
+*.sln.iml
+.vs/
+.vscode/
+.idea/
+*.userprefs
+*.swp
+*.swo
+*~
+.DS_Store
+
+# NuGet
+packages/
+*.nupkg
+*.nuget.props
+*.nuget.targets
+.nuget/
+
+# Rider IDE
+.idea/
+*.iml
 riderModule.iml
-/_ReSharper.Caches/
+_ReSharper.Caches/
+/.idea/
+
+# Aspire specific
+.aspire/
+aspnetcore.pfx
+aspnetcore.pfx.crt
+
+# ============================================================================
+# Node.js / NPM / Vite
+# ============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+dist/
+dist-ssr/
+*.local
+
+# Vite
+.vite/
+vite-env.d.ts
+
+# ============================================================================
+# Environment & Secrets
+# ============================================================================
+.env
+.env.local
+.env.*.local
+.env.production.local
+appsettings.Development.json
+appsettings.*.json
+!appsettings.json
+
+# User secrets
+secrets.json
+user-secrets.json
+
+# ============================================================================
+# IDE & Editor
+# ============================================================================
+.vscode/
+!.vscode/extensions.json
+.vscode/*.code-snippets
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-v][a-z]
+[._]sw[a-p]
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ============================================================================
+# Build outputs
+# ============================================================================
+*.dll
+*.exe
+*.so
+*.dylib
+*.a
+*.o
+*.out
+
+# ============================================================================
+# Coverage & Testing
+# ============================================================================
+coverage/
+.nyc_output/
+*.lcov
+TestResults/
+.coverage
+
+# ============================================================================
+# Logs
+# ============================================================================
+logs/
+*.log
+*.logs
+
+# ============================================================================
+# Temporary files
+# ============================================================================
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*~
+
+# ============================================================================
+# Docker (optionnel si vous committez Dockerfile)
+# ============================================================================
+.dockerignore
+docker-compose.override.yml
+
+# ============================================================================
+# Lock files (optionnel : garder package-lock.json et csproj.nuget.lock)
+# ============================================================================
+# Décommenter si vous préférez les ignorer
+# package-lock.json
+# CESI-CI-CD.csproj.nuget.lock

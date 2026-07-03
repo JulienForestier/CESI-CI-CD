@@ -14,7 +14,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/collector-shop
+  OWNER: ${{ toLower(github.repository_owner) }}
+  IMAGE_NAME: ${{ env.OWNER }}/collector-shop
 
 jobs:
   build-and-push:
@@ -32,8 +33,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          username: ${{ github.actor }}        
+          password: ${{ secrets.GH_PAT }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -67,7 +68,7 @@ jobs:
           fi
           
           # Mettre à jour l'image
-          sed -i "s|image: .*collector-shop.*|image: ghcr.io/${{ github.repository_owner }}/collector-shop:dev|g" deployment.yaml
+          sed -i "s|image: .*collector-shop.*|image: ghcr.io/${{ toLower(github.repository_owner) }}/collector-shop:dev|g" deployment.yaml
           
           git config user.email "action@github.com"
           git config user.name "github-actions"
