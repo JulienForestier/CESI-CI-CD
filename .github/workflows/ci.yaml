@@ -10,8 +10,9 @@ on:
 
 permissions:
   contents: read
-  security-events: write
+  issues: write
   pull-requests: write
+  security-events: write
 
 jobs:
   detect-changes:
@@ -20,7 +21,6 @@ jobs:
     outputs:
       front-changed: ${{ steps.filter.outputs.front }}
       api-changed: ${{ steps.filter.outputs.api }}
-      aspire-changed: ${{ steps.filter.outputs.aspire }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,26 +34,25 @@ jobs:
           filters: |
             front:
               - 'application/collector-shop/**'
-              - 'application/collector-shop/package*.json'
-              - 'application/collector-shop/vite.config*'
-              - 'application/collector-shop/tsconfig*'
-              - '.github/workflows/**front**'
+              - '.github/workflows/ci-front.yml'
+              - '.github/workflows/code-quality-sast.yml'
+              - '.github/workflows/deploy-front.yml'
             api:
-              - 'CESI-CI-CD/**'
-              - '!CESI-CI-CD/bin/**'
-              - '!CESI-CI-CD/obj/**'
-            aspire:
-              - 'CESI-CI-CD/AppHost.cs'
-              - 'CESI-CI-CD/Properties/launchSettings.json'
+              - 'api/**'
+              - '!api/**/bin/**'
+              - '!api/**/obj/**'
+              - '.github/workflows/ci-api.yml'
+              - '.github/workflows/code-quality-sast.yml'
+              - '.github/workflows/ci-security.yml'
 
   front-pipeline:
-#    if: needs.detect-changes.outputs.front-changed == 'true'
+    if: needs.detect-changes.outputs.front-changed == 'true'
     needs: detect-changes
     uses: ./.github/workflows/ci-front.yml
     secrets: inherit
 
   api-pipeline:
-#    if: needs.detect-changes.outputs.api-changed == 'true'
+    if: needs.detect-changes.outputs.api-changed == 'true'
     needs: detect-changes
     uses: ./.github/workflows/ci-api.yml
     secrets: inherit
@@ -61,10 +60,19 @@ jobs:
   security-pipeline:
     needs: detect-changes
     uses: ./.github/workflows/ci-security.yml
+    with:
+      trufflehog_base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+      trufflehog_head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
     secrets: inherit
 
   status:
     if: always()
     needs: [front-pipeline, api-pipeline, security-pipeline]
     uses: ./.github/workflows/ci-status.yml
+    with:
+      front_result: ${{ needs.front-pipeline.result }}
+      api_result: ${{ needs.api-pipeline.result }}
+      security_result: ${{ needs.security-pipeline.result }}
+      should_comment: ${{ github.event_name == 'pull_request' }}
+      pull_request_number: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
     secrets: inherit

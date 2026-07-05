@@ -1,0 +1,18 @@
+# Fichiers de tests (souvent avec du code volontairement vulnérable)
+tests/
+*_test.py
+test_*.py
+spec/
+
+# Code généré automatiquement
+generated/
+*.pb.go
+*.generated.ts
+
+# Dépendances vendorisées
+vendor/
+node_modules/
+third_party/
+
+# Fichiers de configuration
+*.config.js

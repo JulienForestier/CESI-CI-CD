@@ -21,15 +21,15 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        working-directory: CESI-CI-CD
-        run: dotnet restore
+        working-directory: api
+        run: dotnet restore CESI-CI-CD.sln
 
       - name: Build
-        working-directory: CESI-CI-CD
-        run: dotnet build --no-restore --configuration Release
+        working-directory: api
+        run: dotnet build CESI-CI-CD.sln --no-restore --configuration Release
 
-  test:
-    name: Unit Tests
+  dependency-audit:
+    name: Dependency Audit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -41,32 +41,9 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        working-directory: CESI-CI-CD
-        run: dotnet restore
+        working-directory: api
+        run: dotnet restore CESI-CI-CD.sln
 
-      - name: Run tests
-        working-directory: CESI-CI-CD
-        run: dotnet test --no-restore --verbosity normal || true
-
-  sast:
-    name: SAST - Semgrep
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: >-
-            p/owasp-top-ten
-            p/security-audit
-          generateSarif: true
-        continue-on-error: true
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'semgrep.sarif'
-          category: 'semgrep-api'
+      - name: Vulnerability audit
+        working-directory: api
+        run: dotnet list package --vulnerable --include-transitive

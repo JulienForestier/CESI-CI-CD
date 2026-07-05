@@ -2,6 +2,15 @@ name: CI - Security
 
 on:
   workflow_call:
+    inputs:
+      trufflehog_base:
+        required: false
+        type: string
+        default: ''
+      trufflehog_head:
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -18,12 +27,31 @@ jobs:
           fetch-depth: 0
 
       - name: TruffleHog Scan
+        if: inputs.trufflehog_base != '' && inputs.trufflehog_head != ''
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --debug --only-verified
+          base: ${{ inputs.trufflehog_base }}
+          head: ${{ inputs.trufflehog_head }}
+          extra_args: --only-verified
+
+  semgrep-frontend:
+    name: Semgrep - Frontend
+    uses: ./.github/workflows/code-quality-sast.yml
+    with:
+      scan_path: application/collector-shop
+      config: p/security-audit
+      category: semgrep-frontend
+    secrets: inherit
+
+  semgrep-api:
+    name: Semgrep - API
+    uses: ./.github/workflows/code-quality-sast.yml
+    with:
+      scan_path: api/CESI-CI-CD
+      config: p/security-audit
+      category: semgrep-api
+    secrets: inherit
 
   dependency-check:
     name: Dependency Check
@@ -35,13 +63,76 @@ jobs:
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
+          project: ${{ github.repository }}
           path: '.'
           format: 'SARIF'
+          out: 'dependency-check-report'
         continue-on-error: true
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: 'dependency-check-report.sarif'
+          sarif_file: 'dependency-check-report/dependency-check-report.sarif'
           category: 'dependency-check'
+
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            setup: node
+            working-directory: application/collector-shop
+          - language: csharp
+            setup: dotnet
+            working-directory: api/CESI-CI-CD
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: matrix.setup == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'application/collector-shop/package-lock.json'
+
+      - name: Setup .NET
+        if: matrix.setup == 'dotnet'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Install frontend dependencies
+        if: matrix.setup == 'node'
+        working-directory: ${{ matrix.working-directory }}
+        run: npm ci
+
+      - name: Build frontend
+        if: matrix.setup == 'node'
+        working-directory: ${{ matrix.working-directory }}
+        run: npm run build
+
+      - name: Restore .NET dependencies
+        if: matrix.setup == 'dotnet'
+        working-directory: ${{ matrix.working-directory }}
+        run: dotnet restore
+
+      - name: Build .NET
+        if: matrix.setup == 'dotnet'
+        working-directory: ${{ matrix.working-directory }}
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Analyze CodeQL
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: codeql-${{ matrix.language }}

@@ -5,7 +5,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
   security-events: write
 
 jobs:
@@ -29,8 +28,7 @@ jobs:
 
       - name: Run ESLint
         working-directory: application/collector-shop
-        run: npm run lint --if-present || echo "No lint script"
-        continue-on-error: true
+        run: npm run lint
 
   test:
     name: Unit Tests
@@ -52,8 +50,7 @@ jobs:
 
       - name: Run tests
         working-directory: application/collector-shop
-        run: npm test --if-present || echo "No test script"
-        continue-on-error: true
+        run: npm test
 
       - name: Upload coverage
         if: always()
@@ -62,8 +59,31 @@ jobs:
           files: ./application/collector-shop/coverage/coverage-final.json
           fail_ci_if_error: false
 
+  dependency-audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'application/collector-shop/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: application/collector-shop
+        run: npm ci
+
+      - name: npm audit
+        working-directory: application/collector-shop
+        run: npm audit --audit-level=high
+
   build:
     name: Build
+    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -90,28 +110,6 @@ jobs:
           name: front-dist
           path: application/collector-shop/dist/
 
-  scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: 'application/collector-shop/package-lock.json'
-
-      - name: Install dependencies
-        working-directory: application/collector-shop
-        run: npm ci
-
-      - name: npm audit
-        working-directory: application/collector-shop
-        run: npm audit --audit-level=moderate || true
-
   container-scan:
     name: Container Scan
     needs: build
@@ -133,7 +131,7 @@ jobs:
           tags: collector-shop:scan
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@v0.72.0
         with:
           image-ref: collector-shop:scan
           format: 'sarif'

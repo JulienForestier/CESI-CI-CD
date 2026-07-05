@@ -2,9 +2,31 @@ name: CI - Status
 
 on:
   workflow_call:
+    inputs:
+      front_result:
+        required: false
+        type: string
+        default: skipped
+      api_result:
+        required: false
+        type: string
+        default: skipped
+      security_result:
+        required: false
+        type: string
+        default: skipped
+      should_comment:
+        required: false
+        type: boolean
+        default: false
+      pull_request_number:
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
+  issues: write
   pull-requests: write
 
 jobs:
@@ -17,24 +39,66 @@ jobs:
 
       - name: Generate CI Summary
         run: |
-          echo "# ✅ CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "| API | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All checks completed successfully!" >> $GITHUB_STEP_SUMMARY
+          format_status() {
+            case "$1" in
+              success) echo "✅ Passed" ;;
+              skipped) echo "⚪ Skipped" ;;
+              failure) echo "❌ Failed" ;;
+              cancelled) echo "⏹️ Cancelled" ;;
+              *) echo "⚠️ $1" ;;
+            esac
+          }
+
+          FRONT_STATUS="$(format_status "${{ inputs.front_result }}")"
+          API_STATUS="$(format_status "${{ inputs.api_result }}")"
+          SECURITY_STATUS="$(format_status "${{ inputs.security_result }}")"
+
+          {
+            echo "# ✅ CI Pipeline Summary"
+            echo ""
+            echo "| Component | Status |"
+            echo "|-----------|--------|"
+            echo "| Frontend | ${FRONT_STATUS} |"
+            echo "| API | ${API_STATUS} |"
+            echo "| Security | ${SECURITY_STATUS} |"
+            echo ""
+            echo "All checks completed."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comment PR with results
-        if: github.event_name == 'pull_request'
+        if: inputs.should_comment && inputs.pull_request_number != ''
         uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          FRONT_RESULT: ${{ inputs.front_result }}
+          API_RESULT: ${{ inputs.api_result }}
+          SECURITY_RESULT: ${{ inputs.security_result }}
         with:
           script: |
+            function formatStatus(value) {
+              switch (value) {
+                case 'success':
+                  return '✅ Passed';
+                case 'skipped':
+                  return '⚪ Skipped';
+                case 'failure':
+                  return '❌ Failed';
+                case 'cancelled':
+                  return '⏹️ Cancelled';
+                default:
+                  return `⚠️ ${value}`;
+              }
+            }
+
             github.rest.issues.createComment({
-              issue_number: context.issue.number,
+              issue_number: Number(process.env.PR_NUMBER),
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ CI Pipeline passed successfully!\n\n- Frontend: Lint, Tests, Build, Security Scan ✅\n- API: Build, Tests, SAST ✅\n- Security: Secrets Scan, Dependency Check ✅'
-            })
+              body: [
+                '✅ CI Pipeline summary',
+                '',
+                `- Frontend: ${formatStatus(process.env.FRONT_RESULT)}`,
+                `- API: ${formatStatus(process.env.API_RESULT)}`,
+                `- Security: ${formatStatus(process.env.SECURITY_RESULT)}`
+              ].join('\n')
+            });

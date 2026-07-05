@@ -1,0 +1,44 @@
+name: Semgrep Security Scan
+
+on:
+  workflow_call:
+    inputs:
+      scan_path:
+        description: Path to scan
+        required: false
+        type: string
+        default: .
+      config:
+        description: Semgrep ruleset
+        required: false
+        type: string
+        default: p/security-audit
+      category:
+        description: SARIF upload category
+        required: false
+        type: string
+        default: semgrep
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    name: Analyse de sécurité
+    runs-on: ubuntu-24.04
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Scan Semgrep
+        run: semgrep --config "${{ inputs.config }}" --sarif --output semgrep.sarif --error "${{ inputs.scan_path }}"
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: ${{ inputs.category }}
