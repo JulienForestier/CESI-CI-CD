@@ -6,6 +6,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  security-events: write
 
 jobs:
   lint:
@@ -131,16 +132,19 @@ jobs:
           load: true
           tags: collector-shop:scan
 
-      - name: Run Trivy scanner
-        uses: aquasecurity/trivy-action@master
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: collector-shop:scan
           format: 'sarif'
           output: 'trivy-results.sarif'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
-          category: 'trivy-front'
+          sarif_file: trivy-results.sarif
+          category: trivy-container-scan

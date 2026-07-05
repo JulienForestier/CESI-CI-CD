@@ -47,13 +47,13 @@ jobs:
               - 'CESI-CI-CD/Properties/launchSettings.json'
 
   front-pipeline:
-    if: needs.detect-changes.outputs.front-changed == 'true'
+#    if: needs.detect-changes.outputs.front-changed == 'true'
     needs: detect-changes
     uses: ./.github/workflows/ci-front.yml
     secrets: inherit
 
   api-pipeline:
-    if: needs.detect-changes.outputs.api-changed == 'true'
+#    if: needs.detect-changes.outputs.api-changed == 'true'
     needs: detect-changes
     uses: ./.github/workflows/ci-api.yml
     secrets: inherit
