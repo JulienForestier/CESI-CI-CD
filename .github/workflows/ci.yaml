@@ -1,0 +1,70 @@
+name: CI - Orchestrator
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      front-changed: ${{ steps.filter.outputs.front }}
+      api-changed: ${{ steps.filter.outputs.api }}
+      aspire-changed: ${{ steps.filter.outputs.aspire }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            front:
+              - 'application/collector-shop/**'
+              - 'application/collector-shop/package*.json'
+              - 'application/collector-shop/vite.config*'
+              - 'application/collector-shop/tsconfig*'
+              - '.github/workflows/**front**'
+            api:
+              - 'CESI-CI-CD/**'
+              - '!CESI-CI-CD/bin/**'
+              - '!CESI-CI-CD/obj/**'
+            aspire:
+              - 'CESI-CI-CD/AppHost.cs'
+              - 'CESI-CI-CD/Properties/launchSettings.json'
+
+  front-pipeline:
+    if: needs.detect-changes.outputs.front-changed == 'true'
+    needs: detect-changes
+    uses: ./.github/workflows/ci-front.yml
+    secrets: inherit
+
+  api-pipeline:
+    if: needs.detect-changes.outputs.api-changed == 'true'
+    needs: detect-changes
+    uses: ./.github/workflows/ci-api.yml
+    secrets: inherit
+
+  security-pipeline:
+    needs: detect-changes
+    uses: ./.github/workflows/ci-security.yml
+    secrets: inherit
+
+  status:
+    if: always()
+    needs: [front-pipeline, api-pipeline, security-pipeline]
+    uses: ./.github/workflows/ci-status.yml
+    secrets: inherit
