@@ -91,6 +91,8 @@ jobs:
           push: true
           tags: |
             ${{ steps.image.outputs.image_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   update-kubernetes:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}

@@ -11,6 +11,14 @@ on:
         required: false
         type: string
         default: ''
+      front_changed:
+        required: false
+        type: string
+        default: 'true'
+      api_changed:
+        required: false
+        type: string
+        default: 'true'
 
 permissions:
   contents: read
@@ -37,6 +45,7 @@ jobs:
 
   semgrep-frontend:
     name: Semgrep - Frontend
+    if: inputs.front_changed == 'true'
     uses: ./.github/workflows/code-quality-sast.yml
     with:
       scan_path: application/collector-shop
@@ -46,6 +55,7 @@ jobs:
 
   semgrep-api:
     name: Semgrep - API
+    if: inputs.api_changed == 'true'
     uses: ./.github/workflows/code-quality-sast.yml
     with:
       scan_path: api/CESI-CI-CD
@@ -76,33 +86,48 @@ jobs:
           sarif_file: 'dependency-check-report/dependency-check-report.sarif'
           category: 'dependency-check'
 
-  codeql:
-    name: CodeQL (${{ matrix.language }})
+  codeql-frontend:
+    name: CodeQL (javascript-typescript)
+    if: inputs.front_changed == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: javascript-typescript
-            setup: node
-            working-directory: application/collector-shop
-          - language: csharp
-            setup: dotnet
-            working-directory: api/CESI-CI-CD
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        if: matrix.setup == 'node'
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: 'application/collector-shop/package-lock.json'
 
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+
+      - name: Install frontend dependencies
+        working-directory: application/collector-shop
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: application/collector-shop
+        run: npm run build
+
+      - name: Analyze CodeQL
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: codeql-javascript-typescript
+
+  codeql-api:
+    name: CodeQL (csharp)
+    if: inputs.api_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup .NET
-        if: matrix.setup == 'dotnet'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
@@ -110,29 +135,17 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.language }}
-
-      - name: Install frontend dependencies
-        if: matrix.setup == 'node'
-        working-directory: ${{ matrix.working-directory }}
-        run: npm ci
-
-      - name: Build frontend
-        if: matrix.setup == 'node'
-        working-directory: ${{ matrix.working-directory }}
-        run: npm run build
+          languages: csharp
 
       - name: Restore .NET dependencies
-        if: matrix.setup == 'dotnet'
-        working-directory: ${{ matrix.working-directory }}
+        working-directory: api/CESI-CI-CD
         run: dotnet restore
 
       - name: Build .NET
-        if: matrix.setup == 'dotnet'
-        working-directory: ${{ matrix.working-directory }}
+        working-directory: api/CESI-CI-CD
         run: dotnet build --no-restore --configuration Release
 
       - name: Analyze CodeQL
         uses: github/codeql-action/analyze@v4
         with:
-          category: codeql-${{ matrix.language }}
+          category: codeql-csharp
