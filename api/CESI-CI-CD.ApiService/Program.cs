@@ -6,7 +6,9 @@ builder.AddNpgsqlDbContext<CollectorShopDbContext>("collectorshop");
 
 var app = builder.Build();
 
-app.MapGet("/", () => "Collector.shop API");
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+
+var api = app.MapGroup("/api");
+api.MapGet("/", () => "Collector.shop API");
 
 app.Run();
