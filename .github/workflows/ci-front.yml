@@ -131,7 +131,7 @@ jobs:
           tags: collector-shop:scan
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.72.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: collector-shop:scan
           format: 'sarif'
