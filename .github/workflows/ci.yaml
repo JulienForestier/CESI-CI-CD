@@ -43,7 +43,7 @@ jobs:
               - 'application/collector-shop/**'
               - '.github/workflows/ci-front.yml'
               - '.github/workflows/code-quality-sast.yml'
-              - '.github/workflows/deploy-front.yml'
+              - '.github/workflows/deploy.yml'
             api:
               - 'api/**'
               - '!api/**/bin/**'
@@ -51,6 +51,7 @@ jobs:
               - '.github/workflows/ci-api.yml'
               - '.github/workflows/code-quality-sast.yml'
               - '.github/workflows/ci-security.yml'
+              - '.github/workflows/deploy.yml'
 
   front-pipeline:
     if: needs.detect-changes.outputs.front-changed == 'true'
