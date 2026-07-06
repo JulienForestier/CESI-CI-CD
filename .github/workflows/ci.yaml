@@ -11,6 +11,10 @@ on:
       - dev
       - main
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   issues: write
@@ -66,6 +70,8 @@ jobs:
     with:
       trufflehog_base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       trufflehog_head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      front_changed: ${{ needs.detect-changes.outputs.front-changed }}
+      api_changed: ${{ needs.detect-changes.outputs.api-changed }}
     secrets: inherit
 
   code-quality-pipeline:
