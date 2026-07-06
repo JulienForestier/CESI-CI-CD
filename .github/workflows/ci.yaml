@@ -70,6 +70,10 @@ jobs:
     secrets: inherit
 
   code-quality-pipeline:
+    # SonarCloud (plan gratuit) n'analyse avec quality gate que la branche
+    # principale et les Pull Requests ; pas les push directs sur les
+    # branches feature/release.
+    if: github.event_name == 'pull_request'
     needs: detect-changes
     uses: ./.github/workflows/code-quality-sonar.yml
     secrets: inherit
