@@ -15,6 +15,10 @@ on:
         required: false
         type: string
         default: skipped
+      code_quality_result:
+        required: false
+        type: string
+        default: skipped
       should_comment:
         required: false
         type: boolean
@@ -52,6 +56,7 @@ jobs:
           FRONT_STATUS="$(format_status "${{ inputs.front_result }}")"
           API_STATUS="$(format_status "${{ inputs.api_result }}")"
           SECURITY_STATUS="$(format_status "${{ inputs.security_result }}")"
+          CODE_QUALITY_STATUS="$(format_status "${{ inputs.code_quality_result }}")"
 
           {
             echo "# ✅ CI Pipeline Summary"
@@ -61,6 +66,7 @@ jobs:
             echo "| Frontend | ${FRONT_STATUS} |"
             echo "| API | ${API_STATUS} |"
             echo "| Security | ${SECURITY_STATUS} |"
+            echo "| Code Quality (SonarCloud) | ${CODE_QUALITY_STATUS} |"
             echo ""
             echo "All checks completed."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -73,6 +79,7 @@ jobs:
           FRONT_RESULT: ${{ inputs.front_result }}
           API_RESULT: ${{ inputs.api_result }}
           SECURITY_RESULT: ${{ inputs.security_result }}
+          CODE_QUALITY_RESULT: ${{ inputs.code_quality_result }}
         with:
           script: |
             function formatStatus(value) {
@@ -99,6 +106,7 @@ jobs:
                 '',
                 `- Frontend: ${formatStatus(process.env.FRONT_RESULT)}`,
                 `- API: ${formatStatus(process.env.API_RESULT)}`,
-                `- Security: ${formatStatus(process.env.SECURITY_RESULT)}`
+                `- Security: ${formatStatus(process.env.SECURITY_RESULT)}`,
+                `- Code Quality (SonarCloud): ${formatStatus(process.env.CODE_QUALITY_RESULT)}`
               ].join('\n')
             });

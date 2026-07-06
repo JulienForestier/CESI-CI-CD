@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - dev
+      - feature/**
+      - release/**
+      - main
   pull_request:
     branches:
       - dev
+      - main
 
 permissions:
   contents: read
@@ -65,14 +69,20 @@ jobs:
       trufflehog_head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
     secrets: inherit
 
+  code-quality-pipeline:
+    needs: detect-changes
+    uses: ./.github/workflows/code-quality-sonar.yml
+    secrets: inherit
+
   status:
     if: always()
-    needs: [front-pipeline, api-pipeline, security-pipeline]
+    needs: [front-pipeline, api-pipeline, security-pipeline, code-quality-pipeline]
     uses: ./.github/workflows/ci-status.yml
     with:
       front_result: ${{ needs.front-pipeline.result }}
       api_result: ${{ needs.api-pipeline.result }}
       security_result: ${{ needs.security-pipeline.result }}
+      code_quality_result: ${{ needs.code-quality-pipeline.result }}
       should_comment: ${{ github.event_name == 'pull_request' }}
       pull_request_number: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || '' }}
     secrets: inherit
