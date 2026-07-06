@@ -8,13 +8,15 @@ on:
       - completed
     branches:
       - dev
+      - release/**
+      - main
 
 permissions:
   contents: write
   packages: write
 
 concurrency:
-  group: deploy-front-dev
+  group: deploy-front-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 env:
@@ -27,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.image.outputs.image_tag }}
+      target_env: ${{ steps.target.outputs.target_env }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,6 +41,24 @@ jobs:
         run: |
           echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
+      - name: Determine target environment
+        id: target
+        run: |
+          BRANCH_NAME="${{ github.event.workflow_run.head_branch }}"
+
+          if [[ "$BRANCH_NAME" == "dev" ]]; then
+            TARGET_ENV="dev"
+          elif [[ "$BRANCH_NAME" == release/* ]]; then
+            TARGET_ENV="rec"
+          elif [[ "$BRANCH_NAME" == "main" ]]; then
+            TARGET_ENV="prod"
+          else
+            echo "::error::Unsupported branch for deployment: $BRANCH_NAME"
+            exit 1
+          fi
+
+          echo "target_env=$TARGET_ENV" >> "$GITHUB_OUTPUT"
+
       - name: Generate image tag
         id: image
         run: |
@@ -45,8 +66,6 @@ jobs:
 
           if [[ "$BRANCH_NAME" == release/* ]]; then
             IMAGE_SUFFIX="${BRANCH_NAME#release/}"
-          elif [[ "$BRANCH_NAME" == release-* ]]; then
-            IMAGE_SUFFIX="${BRANCH_NAME#release-}"
           else
             IMAGE_SUFFIX="$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)"
           fi
@@ -78,20 +97,17 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Set lowercase OWNER
-        run: |
-          echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
       - name: Checkout Kubernetes repo
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/CESI-CI-CD-kubernetes
+          ref: ${{ needs.build-and-push.outputs.target_env }}
           token: ${{ secrets.GH_PAT }}
           path: CESI-CI-CD-kubernetes
 
-      - name: Update image in overlays/dev
+      - name: Update image in overlay
         run: |
-          cd CESI-CI-CD-kubernetes/overlays/dev
+          cd CESI-CI-CD-kubernetes/overlays/${{ needs.build-and-push.outputs.target_env }}
 
           IMAGE_TAG="${{ needs.build-and-push.outputs.image_tag }}"
 
