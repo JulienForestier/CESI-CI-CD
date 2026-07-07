@@ -24,7 +24,7 @@ public static class CatalogEndpoints
             return Results.Ok(categories);
         });
 
-        api.MapGet("/listings", async (CollectorShopDbContext db, Guid? categoryId) =>
+        api.MapGet("/listings", async (CollectorShopDbContext db, Guid? categoryId, string? search) =>
         {
             var query = db.Listings
                 .Include(l => l.Seller)
@@ -36,6 +36,12 @@ public static class CatalogEndpoints
                 query = query.Where(l => l.CategoryId == categoryId);
             }
 
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var pattern = search.Trim().ToLower();
+                query = query.Where(l => l.Title.ToLower().Contains(pattern));
+            }
+
             var listings = await query
                 .OrderByDescending(l => l.CreatedAt)
                 .Select(l => ToResponse(l))
@@ -43,6 +49,25 @@ public static class CatalogEndpoints
 
             return Results.Ok(listings);
         });
+
+        api.MapGet("/listings/mine", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
+        {
+            var sellerId = user.GetUserId();
+            if (sellerId is null)
+            {
+                return Results.Unauthorized();
+            }
+
+            var listings = await db.Listings
+                .Include(l => l.Seller)
+                .Include(l => l.Category)
+                .Where(l => l.SellerId == sellerId)
+                .OrderByDescending(l => l.CreatedAt)
+                .Select(l => ToResponse(l))
+                .ToListAsync();
+
+            return Results.Ok(listings);
+        }).RequireAuthorization();
 
         api.MapGet("/listings/{id:guid}", async (Guid id, CollectorShopDbContext db) =>
         {

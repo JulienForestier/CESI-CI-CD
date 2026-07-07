@@ -59,4 +59,24 @@ describe('App routing', () => {
 
     expect(await screen.findByRole('heading', { name: 'Bon retour parmi nous' })).toBeInTheDocument()
   })
+
+  it('redirects to /connexion when visiting my listings while logged out', async () => {
+    renderAt('/mes-annonces')
+
+    expect(await screen.findByRole('heading', { name: 'Bon retour parmi nous' })).toBeInTheDocument()
+  })
+
+  it('renders my listings when logged in', async () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: { token: 't', userId: 'seller-1', email: 'a@b.com', displayName: 'Alice' },
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    })
+    vi.mocked(catalogApi.getMyListings).mockResolvedValue([])
+
+    renderAt('/mes-annonces')
+
+    expect(await screen.findByRole('heading', { name: 'Mes annonces' })).toBeInTheDocument()
+  })
 })

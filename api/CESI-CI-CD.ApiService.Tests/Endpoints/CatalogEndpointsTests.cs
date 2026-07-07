@@ -149,4 +149,67 @@ public class CatalogEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var listing = await response.Content.ReadFromJsonAsync<ListingResponse>(JsonOptions);
         Assert.Equal(created.Id, listing!.Id);
     }
+
+    [Fact]
+    public async Task GetListings_FiltersBySearch_CaseInsensitive()
+    {
+        var (token, _) = await RegisterSellerAsync();
+        var categoryId = await GetAnyCategoryIdAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var uniqueTitle = $"Zorglonium Statuette {Guid.NewGuid():N}";
+        await _client.PostAsJsonAsync(
+            "/api/listings",
+            new CreateListingRequest(uniqueTitle, "Pièce unique", 50, categoryId));
+        _client.DefaultRequestHeaders.Authorization = null;
+
+        var matching = await _client.GetFromJsonAsync<List<ListingResponse>>(
+            $"/api/listings?search={Uri.EscapeDataString("zorglonium")}",
+            JsonOptions);
+        var nonMatching = await _client.GetFromJsonAsync<List<ListingResponse>>(
+            $"/api/listings?search={Uri.EscapeDataString("inexistant-xyz")}",
+            JsonOptions);
+
+        Assert.Contains(matching!, l => l.Title == uniqueTitle);
+        Assert.DoesNotContain(nonMatching!, l => l.Title == uniqueTitle);
+    }
+
+    [Fact]
+    public async Task GetMyListings_ReturnsUnauthorized_WithoutToken()
+    {
+        var response = await _client.GetAsync("/api/listings/mine");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetMyListings_ReturnsOwnListings_IncludingRejectedButNotOtherSellers()
+    {
+        var categoryId = await GetAnyCategoryIdAsync();
+
+        var (tokenA, _) = await RegisterSellerAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenA);
+        await _client.PostAsJsonAsync(
+            "/api/listings",
+            new CreateListingRequest("Annonce publiée A", "Description valide", 20, categoryId));
+        await _client.PostAsJsonAsync(
+            "/api/listings",
+            new CreateListingRequest("ab", "", -5, categoryId));
+
+        var (tokenB, _) = await RegisterSellerAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenB);
+        await _client.PostAsJsonAsync(
+            "/api/listings",
+            new CreateListingRequest("Annonce de B", "Description valide", 30, categoryId));
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenA);
+        var response = await _client.GetAsync("/api/listings/mine");
+        _client.DefaultRequestHeaders.Authorization = null;
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var mine = await response.Content.ReadFromJsonAsync<List<ListingResponse>>(JsonOptions);
+
+        Assert.Contains(mine!, l => l.Title == "Annonce publiée A" && l.Status == ListingStatus.Published);
+        Assert.Contains(mine!, l => l.Title == "ab" && l.Status == ListingStatus.Rejected);
+        Assert.DoesNotContain(mine!, l => l.Title == "Annonce de B");
+    }
 }

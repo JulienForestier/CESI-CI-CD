@@ -5,13 +5,25 @@ export function getCategories() {
   return apiFetch<Category[]>('/categories')
 }
 
-export function getListings(categoryId?: string) {
-  const query = categoryId ? `?categoryId=${categoryId}` : ''
-  return apiFetch<Listing[]>(`/listings${query}`)
+export interface ListingsFilter {
+  categoryId?: string
+  search?: string
+}
+
+export function getListings(filter: ListingsFilter = {}) {
+  const params = new URLSearchParams()
+  if (filter.categoryId) params.set('categoryId', filter.categoryId)
+  if (filter.search) params.set('search', filter.search)
+  const query = params.toString()
+  return apiFetch<Listing[]>(`/listings${query ? `?${query}` : ''}`)
 }
 
 export function getListing(id: string) {
   return apiFetch<Listing>(`/listings/${id}`)
+}
+
+export function getMyListings(token: string) {
+  return apiFetch<Listing[]>('/listings/mine', { token })
 }
 
 export interface CreateListingInput {
