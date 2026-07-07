@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as catalogApi from '../api/catalog'
-import type { CreateListingInput } from '../api/catalog'
+import type { CreateListingInput, ListingsFilter } from '../api/catalog'
 import { useAuth } from '../context/AuthContext'
 
 export function useCategories() {
@@ -10,10 +10,10 @@ export function useCategories() {
   })
 }
 
-export function useListings(categoryId?: string) {
+export function useListings(filter: ListingsFilter = {}) {
   return useQuery({
-    queryKey: ['listings', categoryId ?? null],
-    queryFn: () => catalogApi.getListings(categoryId),
+    queryKey: ['listings', filter.categoryId ?? null, filter.search ?? null],
+    queryFn: () => catalogApi.getListings(filter),
   })
 }
 
@@ -22,6 +22,16 @@ export function useListing(id: string | undefined) {
     queryKey: ['listings', id],
     queryFn: () => catalogApi.getListing(id!),
     enabled: Boolean(id),
+  })
+}
+
+export function useMyListings() {
+  const { user } = useAuth()
+
+  return useQuery({
+    queryKey: ['listings', 'mine', user?.userId],
+    queryFn: () => catalogApi.getMyListings(user!.token),
+    enabled: Boolean(user),
   })
 }
 

@@ -70,6 +70,23 @@ describe('CatalogPage', () => {
     await screen.findByText('Figurine rare')
     await userEvent.selectOptions(screen.getByLabelText('Filtrer par catégorie'), 'cat-1')
 
-    await waitFor(() => expect(catalogApi.getListings).toHaveBeenCalledWith('cat-1'))
+    await waitFor(() =>
+      expect(catalogApi.getListings).toHaveBeenCalledWith({ categoryId: 'cat-1', search: undefined }),
+    )
+  })
+
+  it('refetches listings with the search term after debounce', async () => {
+    vi.mocked(catalogApi.getCategories).mockResolvedValue(categories)
+    vi.mocked(catalogApi.getListings).mockResolvedValue(listings)
+
+    renderWithProviders(<CatalogPage />)
+
+    await screen.findByText('Figurine rare')
+    await userEvent.type(screen.getByLabelText('Rechercher une annonce'), 'goku')
+
+    await waitFor(
+      () => expect(catalogApi.getListings).toHaveBeenCalledWith({ categoryId: undefined, search: 'goku' }),
+      { timeout: 1000 },
+    )
   })
 })

@@ -49,6 +49,7 @@ describe('Layout', () => {
     renderLayout()
 
     expect(screen.getByText('Alice')).toBeInTheDocument()
+    expect(screen.getByText('Mes annonces')).toBeInTheDocument()
     await userEvent.click(screen.getByText('Se déconnecter'))
     expect(logout).toHaveBeenCalled()
   })

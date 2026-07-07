@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { CatalogPage } from './pages/CatalogPage'
 import { ListingDetailPage } from './pages/ListingDetailPage'
 import { LoginPage } from './pages/LoginPage'
+import { MyListingsPage } from './pages/MyListingsPage'
 import { NewListingPage } from './pages/NewListingPage'
 import { RegisterPage } from './pages/RegisterPage'
 
@@ -20,6 +21,14 @@ function App() {
           element={
             <ProtectedRoute>
               <NewListingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="mes-annonces"
+          element={
+            <ProtectedRoute>
+              <MyListingsPage />
             </ProtectedRoute>
           }
         />
