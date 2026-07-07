@@ -8,6 +8,7 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
     public DbSet<User> Users => Set<User>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Listing> Listings => Set<Listing>();
+    public DbSet<Favorite> Favorites => Set<Favorite>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +27,22 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
             .WithMany(c => c.Listings)
             .HasForeignKey(l => l.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Favorite>()
+            .HasIndex(f => new { f.UserId, f.ListingId })
+            .IsUnique();
+
+        modelBuilder.Entity<Favorite>()
+            .HasOne(f => f.User)
+            .WithMany(u => u.Favorites)
+            .HasForeignKey(f => f.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Favorite>()
+            .HasOne(f => f.Listing)
+            .WithMany()
+            .HasForeignKey(f => f.ListingId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Catégories créées par l'admin (cf. contexte métier : seul l'admin crée les catégories)
         modelBuilder.Entity<Category>().HasData(

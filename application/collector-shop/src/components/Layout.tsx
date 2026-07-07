@@ -30,6 +30,9 @@ export function Layout() {
 
             {user ? (
               <>
+                <Link to="/favoris" className="font-medium text-ink hover:text-burnt">
+                  Mes favoris
+                </Link>
                 <Link to="/mes-annonces" className="font-medium text-ink hover:text-burnt">
                   Mes annonces
                 </Link>

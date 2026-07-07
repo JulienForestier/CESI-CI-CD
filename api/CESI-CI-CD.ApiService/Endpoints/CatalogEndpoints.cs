@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
@@ -44,7 +43,7 @@ public static class CatalogEndpoints
 
             var listings = await query
                 .OrderByDescending(l => l.CreatedAt)
-                .Select(l => ToResponse(l))
+                .Select(l => ListingMapper.ToResponse(l))
                 .ToListAsync();
 
             return Results.Ok(listings);
@@ -63,7 +62,7 @@ public static class CatalogEndpoints
                 .Include(l => l.Category)
                 .Where(l => l.SellerId == sellerId)
                 .OrderByDescending(l => l.CreatedAt)
-                .Select(l => ToResponse(l))
+                .Select(l => ListingMapper.ToResponse(l))
                 .ToListAsync();
 
             return Results.Ok(listings);
@@ -75,7 +74,7 @@ public static class CatalogEndpoints
                 .Include(l => l.Seller)
                 .Include(l => l.Category)
                 .Where(l => l.Id == id && l.Status == ListingStatus.Published)
-                .Select(l => ToResponse(l))
+                .Select(l => ListingMapper.ToResponse(l))
                 .FirstOrDefaultAsync();
 
             return listing is null ? Results.NotFound() : Results.Ok(listing);
@@ -118,25 +117,7 @@ public static class CatalogEndpoints
             await db.Entry(listing).Reference(l => l.Seller).LoadAsync();
             await db.Entry(listing).Reference(l => l.Category).LoadAsync();
 
-            return Results.Created($"/api/listings/{listing.Id}", ToResponse(listing));
+            return Results.Created($"/api/listings/{listing.Id}", ListingMapper.ToResponse(listing));
         }).RequireAuthorization();
     }
-
-    private static Guid? GetUserId(this ClaimsPrincipal user)
-    {
-        var value = user.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Guid.TryParse(value, out var id) ? id : null;
-    }
-
-    private static ListingResponse ToResponse(Listing listing) => new(
-        listing.Id,
-        listing.Title,
-        listing.Description,
-        listing.Price,
-        listing.Status,
-        listing.CreatedAt,
-        listing.SellerId,
-        listing.Seller?.DisplayName ?? string.Empty,
-        listing.CategoryId,
-        listing.Category?.Name ?? string.Empty);
 }
