@@ -19,8 +19,8 @@ Le pipeline applique donc bien **plus des deux types de tests minimum exigés**,
 
 ## Preuve d'exécution réussie (dernière exécution en date)
 
-- **API (.NET)** : 29 tests (unitaires `ListingModerationServiceTests`, `TokenServiceTests` + intégration `AuthEndpointsTests`, `CatalogEndpointsTests`), **29/29 réussis**, couverture 95,9 % (hors migrations générées).
-- **Front (React)** : 44 tests (composants, pages, hooks, contexte, schémas), **44/44 réussis**, couverture 100 % statements / 92,45 % branches.
+- **API (.NET)** : 32 tests (unitaires `ListingModerationServiceTests`, `TokenServiceTests` + intégration `AuthEndpointsTests`, `CatalogEndpointsTests`), **32/32 réussis**, couverture 95,6 % (hors migrations générées).
+- **Front (React)** : 55 tests (composants, pages, hooks, contexte, schémas), **55/55 réussis**, couverture 100 % statements / 93,9 % branches.
 - **SonarCloud Quality Gate** : `OK` sur la PR #7 (`new_coverage = 94.9`, seuil 80 ; toutes les autres conditions à `OK`).
 - **Sécurité** (PR #7, 23 check runs) : Trivy, Semgrep, CodeQL (JS/TS + C#), TruffleHog, OWASP Dependency-Check — **tous passés**.
 - **Charge** (Siege, `dev`) : 913 transactions, **0 échec**, 0,49 s de temps de réponse moyen.

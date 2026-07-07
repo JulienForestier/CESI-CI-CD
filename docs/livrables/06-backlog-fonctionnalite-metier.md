@@ -56,6 +56,26 @@ Collector.shop est une marketplace C2C d'objets de collection. Le périmètre de
 
 **Preuve de conformité** : `GetListingById_ReturnsListing_AfterPublish`, `GetListingById_ReturnsNotFound_WhenUnknown` (API), `ListingDetailPage` — *"shows a not-found message on a 404"* (front).
 
+### US6 — Rechercher une annonce par mot-clé
+
+> En tant que **visiteur**, je veux rechercher une annonce par mot-clé dans son titre, afin de retrouver rapidement un objet précis dans un catalogue qui grossit.
+
+- **CA1** : la recherche filtre les annonces dont le titre contient le mot-clé, sans tenir compte de la casse.
+- **CA2** : la recherche se combine avec le filtre de catégorie déjà existant.
+- **CA3** : le résultat se met à jour automatiquement pendant la saisie (avec un léger délai pour éviter une requête à chaque frappe).
+
+**Preuve de conformité** : `GetListings_FiltersBySearch_CaseInsensitive` (API), `CatalogPage` — *"refetches listings with the search term after debounce"* (front).
+
+### US7 — Consulter mes propres annonces
+
+> En tant qu'**utilisateur connecté**, je veux consulter la liste de toutes mes annonces (y compris celles rejetées par le contrôle qualité), afin de suivre l'état de mes publications.
+
+- **CA1** : seules mes propres annonces apparaissent, jamais celles d'un autre vendeur.
+- **CA2** : contrairement au catalogue public, mes annonces rejetées sont visibles ici, avec un badge de statut explicite.
+- **CA3** : je dois être connecté pour accéder à cette page (`401` sinon).
+
+**Preuve de conformité** : `GetMyListings_ReturnsUnauthorized_WithoutToken`, `GetMyListings_ReturnsOwnListings_IncludingRejectedButNotOtherSellers` (API), `MyListingsPage` — *"shows own listings with a status badge"*, *"shows an empty state when the user has no listings"* (front).
+
 ## Synthèse de conformité
 
 | User story | Tests d'acceptation associés | Statut |
@@ -65,5 +85,19 @@ Collector.shop est une marketplace C2C d'objets de collection. Le périmètre de
 | US3 — Connexion | 5 tests (API + front) | ✅ Conforme |
 | US4 — Publication avec contrôle qualité | 7 tests (API + front) | ✅ Conforme |
 | US5 — Détail d'annonce | 5 tests (API + front) | ✅ Conforme |
+| US6 — Recherche par mot-clé | 2 tests (API + front) | ✅ Conforme |
+| US7 — Mes annonces | 5 tests (API + front) | ✅ Conforme |
 
 L'ensemble de ces critères d'acceptation est couvert par des **tests d'intégration API réels** (via `WebApplicationFactory`, base de données en mémoire, JWT réellement émis et vérifié) et des **tests de composants front** (rendu, interactions utilisateur simulées via `@testing-library/user-event`), exécutés à chaque Pull Request (voir [Processus de test](./02-processus-test.md)).
+
+## Comptes de démonstration (environnement `dev`)
+
+Pour la soutenance, l'environnement `dev` (https://dev.julienforestier.pro) a été peuplé avec trois comptes vendeur et neuf annonces réparties sur les trois catégories, dont deux volontairement rejetées par le contrôle qualité automatique (utile pour démontrer US4/US7 en direct sans dépendre d'une saisie live).
+
+| Email | Mot de passe | Nom affiché | Annonces |
+|---|---|---|---|
+| `alice@collector.shop` | `Demo1234!` | Alice Vintage | 3 annonces Figurines, toutes publiées |
+| `bob@collector.shop` | `Demo1234!` | Bob Sneakers | 2 annonces Sneakers publiées + 1 rejetée (titre trop court, prix négatif) |
+| `chloe@collector.shop` | `Demo1234!` | Chloé Vinyles | 2 annonces Vinyles publiées + 1 rejetée (prix hors plage) |
+
+Se connecter avec **Bob** ou **Chloé** puis ouvrir *Mes annonces* permet de montrer en direct qu'une annonce rejetée reste visible pour son auteur (badge "Rejetée") sans jamais apparaître dans le catalogue public — sans avoir à resaisir un scénario d'échec pendant la présentation.
