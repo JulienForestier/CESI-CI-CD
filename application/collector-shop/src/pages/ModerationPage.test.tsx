@@ -37,6 +37,7 @@ describe('ModerationPage', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
   })
 

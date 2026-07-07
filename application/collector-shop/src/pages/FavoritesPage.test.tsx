@@ -35,6 +35,7 @@ describe('FavoritesPage', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
     vi.mocked(favoritesApi.getFavoriteIds).mockResolvedValue(['listing-1'])
   })

@@ -26,6 +26,7 @@ describe('FavoriteButton', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     render(
@@ -49,6 +50,7 @@ describe('FavoriteButton', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
     vi.mocked(favoritesApi.getFavoriteIds).mockResolvedValue([])
     vi.mocked(favoritesApi.addFavorite).mockResolvedValue(undefined)
@@ -67,6 +69,7 @@ describe('FavoriteButton', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
     vi.mocked(favoritesApi.getFavoriteIds).mockResolvedValue(['listing-1'])
     vi.mocked(favoritesApi.removeFavorite).mockResolvedValue(undefined)
@@ -85,6 +88,7 @@ describe('FavoriteButton', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
     vi.mocked(favoritesApi.getFavoriteIds).mockResolvedValue([])
 

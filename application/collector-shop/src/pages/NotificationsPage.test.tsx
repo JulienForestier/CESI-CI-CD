@@ -41,6 +41,7 @@ describe('NotificationsPage', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
   })
 

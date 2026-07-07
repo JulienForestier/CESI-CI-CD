@@ -38,6 +38,7 @@ describe('Header', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     renderHeader()
@@ -46,22 +47,21 @@ describe('Header', () => {
     expect(screen.getByText('Vendre un objet')).toBeInTheDocument()
   })
 
-  it('shows the user name and logout button when logged in', async () => {
-    const logout = vi.fn()
+  it('shows a link to the profile page when logged in', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
       user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
-      logout,
+      logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     renderHeader()
 
-    expect(screen.getByTitle('Alice')).toBeInTheDocument()
+    expect(screen.getByTitle('Alice')).toHaveAttribute('href', '/profil')
     expect(screen.getByText('Mes annonces')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Modération' })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByText('Se déconnecter'))
-    expect(logout).toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Se déconnecter' })).not.toBeInTheDocument()
   })
 
   it('shows the moderation link for admin users', () => {
@@ -70,6 +70,7 @@ describe('Header', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     renderHeader()
@@ -95,6 +96,7 @@ describe('Header', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     renderHeader()
@@ -119,6 +121,7 @@ describe('Header', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     renderHeader()
@@ -133,6 +136,7 @@ describe('Header', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     renderHeader()
@@ -146,6 +150,7 @@ describe('Header', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     renderHeader()
@@ -166,13 +171,13 @@ describe('Header', () => {
     expect(screen.getAllByRole('link', { name: 'Catalogue' })).toHaveLength(1)
   })
 
-  it('shows the logged-in actions and utility links in the mobile menu', async () => {
-    const logout = vi.fn()
+  it('shows the profile link and utility links in the mobile menu', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
       user: { token: 't', userId: 'u', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
       login: vi.fn(),
       register: vi.fn(),
-      logout,
+      logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     renderHeader()
@@ -183,11 +188,12 @@ describe('Header', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Ouvrir le menu' }))
 
     expect(screen.getAllByRole('link', { name: /Modération/ })).toHaveLength(2)
-    expect(screen.getByText('Admin')).toBeInTheDocument()
-    const logoutButtons = screen.getAllByRole('button', { name: 'Se déconnecter' })
-    await userEvent.click(logoutButtons[logoutButtons.length - 1])
+    const profileLinks = screen.getAllByRole('link', { name: /Mon profil/ })
+    expect(profileLinks).toHaveLength(2)
+    expect(screen.getByText('Mon profil')).toBeInTheDocument()
 
-    expect(logout).toHaveBeenCalled()
+    await userEvent.click(profileLinks[1])
+
     expect(screen.getByRole('button', { name: 'Ouvrir le menu' })).toHaveAttribute('aria-expanded', 'false')
   })
 
@@ -197,6 +203,7 @@ describe('Header', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     renderHeader()

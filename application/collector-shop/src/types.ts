@@ -59,3 +59,11 @@ export interface AppNotification {
   createdAt: string
   listingId: string | null
 }
+
+export interface UserProfile {
+  id: string
+  email: string
+  displayName: string
+  isAdmin: boolean
+  createdAt: string
+}

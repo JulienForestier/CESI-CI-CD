@@ -16,6 +16,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, displayName: string) => Promise<void>
   logout: () => void
+  updateDisplayName: (displayName: string) => void
 }
 
 const STORAGE_KEY = 'collector-shop-auth'
@@ -78,7 +79,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => persist(null), [persist])
 
-  const value = useMemo(() => ({ user, login, register, logout }), [user, login, register, logout])
+  const updateDisplayName = useCallback(
+    (displayName: string) => {
+      setUser((current) => {
+        if (!current) return current
+        const next = { ...current, displayName }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+        return next
+      })
+    },
+    [],
+  )
+
+  const value = useMemo(
+    () => ({ user, login, register, logout, updateDisplayName }),
+    [user, login, register, logout, updateDisplayName],
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

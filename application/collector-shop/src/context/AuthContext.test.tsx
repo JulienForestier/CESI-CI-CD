@@ -88,6 +88,27 @@ describe('AuthContext', () => {
     expect(localStorage.getItem('collector-shop-auth')).toBeNull()
   })
 
+  it('updateDisplayName updates the user and persists it', async () => {
+    vi.mocked(authApi.login).mockResolvedValue(authResponse)
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    await act(async () => {
+      await result.current.login('demo@collector.shop', 'password')
+    })
+    act(() => result.current.updateDisplayName('Nouveau pseudo'))
+
+    expect(result.current.user?.displayName).toBe('Nouveau pseudo')
+    expect(JSON.parse(localStorage.getItem('collector-shop-auth')!).displayName).toBe('Nouveau pseudo')
+  })
+
+  it('updateDisplayName does nothing when there is no user', () => {
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    act(() => result.current.updateDisplayName('Nouveau pseudo'))
+
+    expect(result.current.user).toBeNull()
+  })
+
   it('throws when useAuth is used outside of AuthProvider', () => {
     expect(() =>
       renderHook(() => useAuth(), {

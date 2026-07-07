@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import type { AuthUser } from '../context/AuthContext'
 import { useAuth } from '../context/AuthContext'
 import { useConversations } from '../hooks/useChat'
 import { useNotifications } from '../hooks/useNotifications'
 
 export function Header() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const conversationsQuery = useConversations()
   const unreadMessagesCount = conversationsQuery.data?.filter((c) => c.hasUnread).length ?? 0
   const notificationsQuery = useNotifications()
@@ -16,12 +15,6 @@ export function Header() {
 
   function closeMenu() {
     setIsMenuOpen(false)
-  }
-
-  function handleLogout() {
-    logout()
-    closeMenu()
-    navigate('/')
   }
 
   return (
@@ -44,7 +37,7 @@ export function Header() {
             unreadMessagesCount={unreadMessagesCount}
             unreadNotificationsCount={unreadNotificationsCount}
           />
-          <AuthActions user={user} onLogout={handleLogout} />
+          <AuthActions user={user} />
         </div>
 
         <button
@@ -68,7 +61,7 @@ export function Header() {
             onNavigate={closeMenu}
           />
           <div className="mt-3 flex flex-col gap-2 border-t border-ink/10 pt-3">
-            <AuthActions user={user} onLogout={handleLogout} orientation="vertical" onNavigate={closeMenu} />
+            <AuthActions user={user} orientation="vertical" onNavigate={closeMenu} />
           </div>
         </div>
       )}
@@ -203,12 +196,10 @@ function MobileUtilityLinks({
 
 function AuthActions({
   user,
-  onLogout,
   orientation = 'horizontal',
   onNavigate,
 }: {
   user: AuthUser | null
-  onLogout: () => void
   orientation?: 'horizontal' | 'vertical'
   onNavigate?: () => void
 }) {
@@ -244,24 +235,28 @@ function AuthActions({
       >
         Vendre un objet
       </Link>
-      {isVertical ? (
-        <span className="px-3 text-brown-2">{user.displayName}</span>
-      ) : (
-        <span
-          title={user.displayName}
-          aria-label={user.displayName}
-          className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-ink font-display text-sm"
-        >
-          {user.displayName.charAt(0).toUpperCase()}
-        </span>
-      )}
-      <button
-        type="button"
-        onClick={onLogout}
-        className="rounded-full border-[1.5px] border-ink px-4 py-2 text-xs font-semibold text-ink hover:bg-surface"
+      <Link
+        to="/profil"
+        onClick={onNavigate}
+        aria-label={`Mon profil (${user.displayName})`}
+        title={user.displayName}
+        className={
+          isVertical
+            ? 'flex items-center gap-2.5 rounded-lg px-3 py-2.5 font-medium text-ink hover:bg-surface'
+            : 'flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-ink font-display text-sm hover:bg-surface'
+        }
       >
-        Se déconnecter
-      </button>
+        {isVertical ? (
+          <>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-ink font-display text-sm">
+              {user.displayName.charAt(0).toUpperCase()}
+            </span>
+            <span>Mon profil</span>
+          </>
+        ) : (
+          user.displayName.charAt(0).toUpperCase()
+        )}
+      </Link>
     </div>
   )
 }

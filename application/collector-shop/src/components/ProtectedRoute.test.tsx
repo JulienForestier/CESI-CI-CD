@@ -16,6 +16,7 @@ describe('ProtectedRoute', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     render(
@@ -43,6 +44,7 @@ describe('ProtectedRoute', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     render(
@@ -69,6 +71,7 @@ describe('ProtectedRoute', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     render(
@@ -96,6 +99,7 @@ describe('ProtectedRoute', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
 
     render(

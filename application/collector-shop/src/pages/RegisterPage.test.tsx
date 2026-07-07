@@ -29,7 +29,7 @@ describe('RegisterPage', () => {
 
   it('registers and navigates to the catalog on success', async () => {
     const register = vi.fn().mockResolvedValue(undefined)
-    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login: vi.fn(), register, logout: vi.fn() })
+    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login: vi.fn(), register, logout: vi.fn(), updateDisplayName: vi.fn() })
 
     renderPage()
     await userEvent.type(screen.getByLabelText('Pseudo'), 'Nouveau Vendeur')
@@ -43,7 +43,7 @@ describe('RegisterPage', () => {
 
   it('shows a conflict error when the email is already used', async () => {
     const register = vi.fn().mockRejectedValue(new ApiError(409, 'Conflict'))
-    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login: vi.fn(), register, logout: vi.fn() })
+    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login: vi.fn(), register, logout: vi.fn(), updateDisplayName: vi.fn() })
 
     renderPage()
     await userEvent.type(screen.getByLabelText('Pseudo'), 'Nouveau Vendeur')
