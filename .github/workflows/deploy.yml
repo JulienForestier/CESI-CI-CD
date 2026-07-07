@@ -26,6 +26,10 @@ jobs:
   build-and-push:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
     outputs:
       target_env: ${{ steps.target.outputs.target_env }}
       front_image_tag: ${{ steps.front-tag.outputs.image_tag }}
@@ -87,6 +91,7 @@ jobs:
         run: echo "image_tag=${{ env.REGISTRY }}/${{ env.OWNER }}/collector-shop:${{ steps.suffix.outputs.suffix }}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push front image
+        id: front-build
         uses: docker/build-push-action@v5
         with:
           context: ./application/collector-shop
@@ -101,6 +106,7 @@ jobs:
         run: echo "image_tag=${{ env.REGISTRY }}/${{ env.OWNER }}/collector-shop-api:${{ steps.suffix.outputs.suffix }}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push api image
+        id: api-build
         uses: docker/build-push-action@v5
         with:
           context: ./api/CESI-CI-CD.ApiService
@@ -109,6 +115,14 @@ jobs:
           tags: ${{ steps.api-tag.outputs.image_tag }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign images (keyless, via GitHub OIDC)
+        run: |
+          cosign sign --yes "${{ steps.front-tag.outputs.image_tag }}@${{ steps.front-build.outputs.digest }}"
+          cosign sign --yes "${{ steps.api-tag.outputs.image_tag }}@${{ steps.api-build.outputs.digest }}"
 
   update-kubernetes:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
