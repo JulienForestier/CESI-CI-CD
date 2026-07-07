@@ -45,7 +45,7 @@ public static class AuthEndpoints
             await db.SaveChangesAsync();
 
             var token = tokenService.GenerateToken(user);
-            return Results.Created($"/api/users/{user.Id}", new AuthResponse(token, user.Id, user.Email, user.DisplayName));
+            return Results.Created($"/api/users/{user.Id}", new AuthResponse(token, user.Id, user.Email, user.DisplayName, user.IsAdmin));
         });
 
         group.MapPost("/login", async (
@@ -67,7 +67,7 @@ public static class AuthEndpoints
             }
 
             var token = tokenService.GenerateToken(user);
-            return Results.Ok(new AuthResponse(token, user.Id, user.Email, user.DisplayName));
+            return Results.Ok(new AuthResponse(token, user.Id, user.Email, user.DisplayName, user.IsAdmin));
         });
     }
 }

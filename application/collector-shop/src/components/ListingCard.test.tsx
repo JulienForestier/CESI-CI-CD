@@ -10,6 +10,8 @@ const listing: Listing = {
   description: 'Édition limitée',
   price: 45.9,
   status: 'Published',
+  qualityScore: 100,
+  moderationReason: 'RAS',
   createdAt: new Date().toISOString(),
   sellerId: 'seller-1',
   sellerDisplayName: 'Vendeur Test',

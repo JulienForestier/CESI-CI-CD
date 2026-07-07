@@ -40,7 +40,7 @@ describe('Layout', () => {
   it('shows the user name and logout button when logged in', async () => {
     const logout = vi.fn()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'Alice' },
+      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout,
@@ -50,7 +50,21 @@ describe('Layout', () => {
 
     expect(screen.getByText('Alice')).toBeInTheDocument()
     expect(screen.getByText('Mes annonces')).toBeInTheDocument()
+    expect(screen.queryByText('Modération')).not.toBeInTheDocument()
     await userEvent.click(screen.getByText('Se déconnecter'))
     expect(logout).toHaveBeenCalled()
+  })
+
+  it('shows the moderation link for admin users', () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: { token: 't', userId: 'u', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    })
+
+    renderLayout()
+
+    expect(screen.getByText('Modération')).toBeInTheDocument()
   })
 })

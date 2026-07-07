@@ -18,6 +18,8 @@ const published: Listing = {
   description: 'Description',
   price: 42,
   status: 'Published',
+  qualityScore: 100,
+  moderationReason: 'RAS',
   createdAt: new Date().toISOString(),
   sellerId: 'seller-1',
   sellerDisplayName: 'Vendeur',
@@ -31,7 +33,7 @@ describe('MyListingsPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'seller-1', email: 'a@b.com', displayName: 'Vendeur' },
+      user: { token: 'jwt-token', userId: 'seller-1', email: 'a@b.com', displayName: 'Vendeur', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),

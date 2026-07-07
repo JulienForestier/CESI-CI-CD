@@ -5,6 +5,7 @@ import { CatalogPage } from './pages/CatalogPage'
 import { FavoritesPage } from './pages/FavoritesPage'
 import { ListingDetailPage } from './pages/ListingDetailPage'
 import { LoginPage } from './pages/LoginPage'
+import { ModerationPage } from './pages/ModerationPage'
 import { MyListingsPage } from './pages/MyListingsPage'
 import { NewListingPage } from './pages/NewListingPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -38,6 +39,14 @@ function App() {
           element={
             <ProtectedRoute>
               <FavoritesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/moderation"
+          element={
+            <ProtectedRoute adminOnly>
+              <ModerationPage />
             </ProtectedRoute>
           }
         />

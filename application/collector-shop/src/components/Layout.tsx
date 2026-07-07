@@ -36,6 +36,11 @@ export function Layout() {
                 <Link to="/mes-annonces" className="font-medium text-ink hover:text-burnt">
                   Mes annonces
                 </Link>
+                {user.isAdmin && (
+                  <Link to="/admin/moderation" className="font-medium text-ink hover:text-burnt">
+                    Modération
+                  </Link>
+                )}
                 <Link
                   to="/annonces/nouvelle"
                   className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-card"

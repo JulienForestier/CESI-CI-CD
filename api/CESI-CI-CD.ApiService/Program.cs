@@ -1,9 +1,12 @@
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 using CESI_CI_CD.ApiService.Data;
+using CESI_CI_CD.ApiService.Data.Entities;
 using CESI_CI_CD.ApiService.Endpoints;
 using CESI_CI_CD.ApiService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -36,7 +39,8 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+    options.AddPolicy("AdminOnly", policy => policy.RequireClaim(ClaimTypes.Role, "Admin")));
 
 builder.Services.AddCors(options =>
 {
@@ -53,6 +57,22 @@ if (!app.Environment.IsEnvironment("Testing"))
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<CollectorShopDbContext>();
     db.Database.Migrate();
+
+    if (!await db.Users.AnyAsync(u => u.IsAdmin))
+    {
+        var hasher = new PasswordHasher<User>();
+        var admin = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "admin@collector.shop",
+            DisplayName = "Admin Collector",
+            IsAdmin = true,
+            PasswordHash = string.Empty,
+        };
+        admin.PasswordHash = hasher.HashPassword(admin, "AdminDemo1234!");
+        db.Users.Add(admin);
+        await db.SaveChangesAsync();
+    }
 }
 
 app.UseCors();
@@ -64,6 +84,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapAuthEndpoints();
 app.MapCatalogEndpoints();
 app.MapFavoriteEndpoints();
+app.MapModerationEndpoints();
 
 app.Run();
 

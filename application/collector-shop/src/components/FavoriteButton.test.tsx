@@ -45,7 +45,7 @@ describe('FavoriteButton', () => {
 
   it('shows an outline heart and adds the listing to favorites when clicked', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A' },
+      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -63,7 +63,7 @@ describe('FavoriteButton', () => {
 
   it('shows a filled heart and removes the listing from favorites when clicked', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A' },
+      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -81,7 +81,7 @@ describe('FavoriteButton', () => {
 
   it('renders a labeled button in the "button" variant', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A' },
+      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),

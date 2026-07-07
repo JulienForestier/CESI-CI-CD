@@ -68,7 +68,7 @@ describe('App routing', () => {
 
   it('renders my listings when logged in', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'seller-1', email: 'a@b.com', displayName: 'Alice' },
+      user: { token: 't', userId: 'seller-1', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),

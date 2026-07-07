@@ -10,4 +10,6 @@ public static class ClaimsPrincipalExtensions
         var value = user.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(value, out var id) ? id : null;
     }
+
+    public static bool IsAdmin(this ClaimsPrincipal user) => user.IsInRole("Admin");
 }

@@ -7,6 +7,8 @@ public class Listing
     public required string Description { get; set; }
     public decimal Price { get; set; }
     public ListingStatus Status { get; set; }
+    public int QualityScore { get; set; }
+    public required string ModerationReason { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public Guid SellerId { get; set; }
