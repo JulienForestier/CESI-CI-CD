@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CESI-CI-CD", "CESI-CI-CD\CE
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CESI-CI-CD.ApiService", "CESI-CI-CD.ApiService\CESI-CI-CD.ApiService.csproj", "{4266BA06-5ECE-4542-BE85-956E774DB9BA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CESI-CI-CD.ApiService.Tests", "CESI-CI-CD.ApiService.Tests\CESI-CI-CD.ApiService.Tests.csproj", "{1A6790AC-37BA-4659-9D33-7677D7E99D57}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,18 @@ Global
 		{4266BA06-5ECE-4542-BE85-956E774DB9BA}.Release|x64.Build.0 = Release|Any CPU
 		{4266BA06-5ECE-4542-BE85-956E774DB9BA}.Release|x86.ActiveCfg = Release|Any CPU
 		{4266BA06-5ECE-4542-BE85-956E774DB9BA}.Release|x86.Build.0 = Release|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Debug|x64.Build.0 = Debug|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Debug|x86.Build.0 = Debug|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Release|x64.ActiveCfg = Release|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Release|x64.Build.0 = Release|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Release|x86.ActiveCfg = Release|Any CPU
+		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
