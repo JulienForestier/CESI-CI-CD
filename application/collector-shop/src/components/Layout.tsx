@@ -1,9 +1,12 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useConversations } from '../hooks/useChat'
 
 export function Layout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const conversationsQuery = useConversations()
+  const unreadCount = conversationsQuery.data?.filter((c) => c.hasUnread).length ?? 0
 
   function handleLogout() {
     logout()
@@ -35,6 +38,14 @@ export function Layout() {
                 </Link>
                 <Link to="/mes-annonces" className="font-medium text-ink hover:text-burnt">
                   Mes annonces
+                </Link>
+                <Link to="/messages" className="relative font-medium text-ink hover:text-burnt">
+                  Messages
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-2 -right-3 flex h-4 min-w-4 items-center justify-center rounded-full bg-burnt px-1 text-[10px] font-bold text-surface">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
                 {user.isAdmin && (
                   <Link to="/admin/moderation" className="font-medium text-ink hover:text-burnt">

@@ -1,14 +1,35 @@
-import { Link, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { FavoriteButton } from '../components/FavoriteButton'
 import { PlaceholderImage } from '../components/PlaceholderImage'
+import { useAuth } from '../context/AuthContext'
 import { useListing } from '../hooks/useCatalog'
+import { useStartConversation } from '../hooks/useChat'
 
 const priceFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
 
 export function ListingDetailPage() {
   const { id } = useParams<{ id: string }>()
   const query = useListing(id)
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const startConversation = useStartConversation()
+  const [chatError, setChatError] = useState<string | null>(null)
+
+  async function handleContactSeller(listingId: string) {
+    if (!user) {
+      navigate('/connexion')
+      return
+    }
+    setChatError(null)
+    try {
+      const conversation = await startConversation.mutateAsync(listingId)
+      navigate(`/messages/${conversation.id}`)
+    } catch (err) {
+      setChatError(err instanceof ApiError ? err.message : "Impossible d'ouvrir la conversation.")
+    }
+  }
 
   if (query.isPending) return <p className="font-ui text-brown-2">Chargement…</p>
 
@@ -48,6 +69,21 @@ export function ListingDetailPage() {
             <div className="font-ui text-sm font-bold">{listing.sellerDisplayName}</div>
             <div className="font-ui text-xs text-brown-2">Vendeur particulier</div>
           </div>
+
+          {listing.sellerId !== user?.userId && (
+            <button
+              type="button"
+              onClick={() => handleContactSeller(listing.id)}
+              disabled={startConversation.isPending}
+              className="mt-3 w-full rounded-xl border-[1.5px] border-ink bg-surface py-3.5 font-ui text-sm font-semibold text-ink disabled:opacity-50"
+            >
+              💬 Discuter avec le vendeur
+            </button>
+          )}
+          {chatError && <p className="mt-2 font-ui text-xs font-medium text-burnt">{chatError}</p>}
+          <p className="mt-2 font-ui text-[11px] text-brown-2">
+            🔒 Le partage de coordonnées personnelles n'est pas autorisé dans le chat.
+          </p>
         </div>
       </div>
 

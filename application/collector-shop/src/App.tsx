@@ -5,6 +5,7 @@ import { CatalogPage } from './pages/CatalogPage'
 import { FavoritesPage } from './pages/FavoritesPage'
 import { ListingDetailPage } from './pages/ListingDetailPage'
 import { LoginPage } from './pages/LoginPage'
+import { MessagesPage } from './pages/MessagesPage'
 import { ModerationPage } from './pages/ModerationPage'
 import { MyListingsPage } from './pages/MyListingsPage'
 import { NewListingPage } from './pages/NewListingPage'
@@ -39,6 +40,22 @@ function App() {
           element={
             <ProtectedRoute>
               <FavoritesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="messages"
+          element={
+            <ProtectedRoute>
+              <MessagesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="messages/:conversationId"
+          element={
+            <ProtectedRoute>
+              <MessagesPage />
             </ProtectedRoute>
           }
         />
