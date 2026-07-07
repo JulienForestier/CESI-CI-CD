@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CatalogPage } from './pages/CatalogPage'
+import { FavoritesPage } from './pages/FavoritesPage'
 import { ListingDetailPage } from './pages/ListingDetailPage'
 import { LoginPage } from './pages/LoginPage'
 import { MyListingsPage } from './pages/MyListingsPage'
@@ -29,6 +30,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MyListingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="favoris"
+          element={
+            <ProtectedRoute>
+              <FavoritesPage />
             </ProtectedRoute>
           }
         />

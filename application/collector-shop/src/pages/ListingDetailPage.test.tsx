@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ListingDetailPage } from './ListingDetailPage'
 import { ApiError } from '../api/client'
 import * as catalogApi from '../api/catalog'
+import { AuthProvider } from '../context/AuthContext'
 import { createTestQueryClient } from '../test/queryClient'
 import type { Listing } from '../types'
 
@@ -27,9 +28,11 @@ function renderAt(id: string) {
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
       <MemoryRouter initialEntries={[`/annonces/${id}`]}>
-        <Routes>
-          <Route path="/annonces/:id" element={<ListingDetailPage />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/annonces/:id" element={<ListingDetailPage />} />
+          </Routes>
+        </AuthProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   )

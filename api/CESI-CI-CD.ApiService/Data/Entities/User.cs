@@ -9,4 +9,5 @@ public class User
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public ICollection<Listing> Listings { get; set; } = new List<Listing>();
+    public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
 }
