@@ -31,6 +31,21 @@ jobs:
         working-directory: application/collector-shop
         run: npm test
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore API dependencies
+        working-directory: api
+        run: dotnet restore CESI-CI-CD.sln
+
+      - name: Run API tests with coverage
+        working-directory: api
+        run: >
+          dotnet test CESI-CI-CD.ApiService.Tests --configuration Release
+          --collect:"XPlat Code Coverage" --settings CESI-CI-CD.ApiService.Tests/coverlet.runsettings
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
