@@ -84,7 +84,8 @@ public static class CatalogEndpoints
             CreateListingRequest request,
             ClaimsPrincipal user,
             CollectorShopDbContext db,
-            ListingModerationService moderationService) =>
+            ListingModerationService moderationService,
+            NotificationService notificationService) =>
         {
             var sellerId = user.GetUserId();
             if (sellerId is null)
@@ -118,6 +119,11 @@ public static class CatalogEndpoints
 
             await db.Entry(listing).Reference(l => l.Seller).LoadAsync();
             await db.Entry(listing).Reference(l => l.Category).LoadAsync();
+
+            if (listing.Status == ListingStatus.Published)
+            {
+                await notificationService.NotifyInterestedUsersOfNewListingAsync(db, listing);
+            }
 
             return Results.Created($"/api/listings/{listing.Id}", ListingMapper.ToResponse(listing));
         }).RequireAuthorization();

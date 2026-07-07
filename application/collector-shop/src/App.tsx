@@ -3,12 +3,14 @@ import { Layout } from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { CatalogPage } from './pages/CatalogPage'
 import { FavoritesPage } from './pages/FavoritesPage'
+import { InterestsPage } from './pages/InterestsPage'
 import { ListingDetailPage } from './pages/ListingDetailPage'
 import { LoginPage } from './pages/LoginPage'
 import { MessagesPage } from './pages/MessagesPage'
 import { ModerationPage } from './pages/ModerationPage'
 import { MyListingsPage } from './pages/MyListingsPage'
 import { NewListingPage } from './pages/NewListingPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 import { RegisterPage } from './pages/RegisterPage'
 
 function App() {
@@ -64,6 +66,22 @@ function App() {
           element={
             <ProtectedRoute adminOnly>
               <ModerationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="centres-interet"
+          element={
+            <ProtectedRoute>
+              <InterestsPage />
             </ProtectedRoute>
           }
         />

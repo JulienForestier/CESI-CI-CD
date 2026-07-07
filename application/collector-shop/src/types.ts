@@ -47,3 +47,15 @@ export interface Message {
   body: string
   sentAt: string
 }
+
+export type NotificationType = 'NewListingMatch' | 'ListingApproved' | 'ListingRejected'
+
+export interface AppNotification {
+  id: string
+  title: string
+  message: string
+  type: NotificationType
+  isRead: boolean
+  createdAt: string
+  listingId: string | null
+}

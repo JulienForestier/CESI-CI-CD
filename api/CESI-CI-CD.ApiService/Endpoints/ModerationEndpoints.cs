@@ -1,6 +1,7 @@
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
 using CESI_CI_CD.ApiService.Data.Entities;
+using CESI_CI_CD.ApiService.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace CESI_CI_CD.ApiService.Endpoints;
@@ -24,7 +25,7 @@ public static class ModerationEndpoints
             return Results.Ok(listings);
         });
 
-        api.MapPost("/listings/{id:guid}/approve", async (Guid id, CollectorShopDbContext db) =>
+        api.MapPost("/listings/{id:guid}/approve", async (Guid id, CollectorShopDbContext db, NotificationService notificationService) =>
         {
             var listing = await db.Listings
                 .Include(l => l.Seller)
@@ -44,10 +45,17 @@ public static class ModerationEndpoints
             listing.Status = ListingStatus.Published;
             await db.SaveChangesAsync();
 
+            await notificationService.NotifySellerOfModerationDecisionAsync(db, listing, approved: true);
+            await notificationService.NotifyInterestedUsersOfNewListingAsync(db, listing);
+
             return Results.Ok(ListingMapper.ToResponse(listing));
         });
 
-        api.MapPost("/listings/{id:guid}/reject", async (Guid id, RejectListingRequest request, CollectorShopDbContext db) =>
+        api.MapPost("/listings/{id:guid}/reject", async (
+            Guid id,
+            RejectListingRequest request,
+            CollectorShopDbContext db,
+            NotificationService notificationService) =>
         {
             var listing = await db.Listings
                 .Include(l => l.Seller)
@@ -72,6 +80,8 @@ public static class ModerationEndpoints
             listing.Status = ListingStatus.Rejected;
             listing.ModerationReason = request.Reason.Trim();
             await db.SaveChangesAsync();
+
+            await notificationService.NotifySellerOfModerationDecisionAsync(db, listing, approved: false);
 
             return Results.Ok(ListingMapper.ToResponse(listing));
         });
