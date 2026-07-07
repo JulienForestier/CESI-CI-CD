@@ -9,6 +9,8 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Listing> Listings => Set<Listing>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<Message> Messages => Set<Message>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,6 +45,40 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
             .WithMany()
             .HasForeignKey(f => f.ListingId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Conversation>()
+            .HasIndex(c => new { c.ListingId, c.BuyerId })
+            .IsUnique();
+
+        modelBuilder.Entity<Conversation>()
+            .HasOne(c => c.Listing)
+            .WithMany()
+            .HasForeignKey(c => c.ListingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Conversation>()
+            .HasOne(c => c.Buyer)
+            .WithMany()
+            .HasForeignKey(c => c.BuyerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Conversation>()
+            .HasOne(c => c.Seller)
+            .WithMany()
+            .HasForeignKey(c => c.SellerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Message>()
+            .HasOne(m => m.Conversation)
+            .WithMany(c => c.Messages)
+            .HasForeignKey(m => m.ConversationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Message>()
+            .HasOne(m => m.Sender)
+            .WithMany()
+            .HasForeignKey(m => m.SenderId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Catégories créées par l'admin (cf. contexte métier : seul l'admin crée les catégories)
         modelBuilder.Entity<Category>().HasData(
