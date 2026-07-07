@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ApiError } from '../api/client'
 import { useCategories } from '../hooks/useCatalog'
 import { useInterests, useUpdateInterests } from '../hooks/useInterests'
@@ -13,19 +13,15 @@ export function InterestsPage() {
   const categoriesQuery = useCategories()
   const interestsQuery = useInterests()
   const updateInterests = useUpdateInterests()
-  const [selected, setSelected] = useState<string[]>([])
+  const [override, setOverride] = useState<string[] | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (interestsQuery.data) {
-      setSelected(interestsQuery.data)
-    }
-  }, [interestsQuery.data])
+  const selected = override ?? interestsQuery.data ?? []
 
   function toggle(categoryId: string) {
     setMessage(null)
-    setSelected((prev) => (prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]))
+    setOverride(selected.includes(categoryId) ? selected.filter((id) => id !== categoryId) : [...selected, categoryId])
   }
 
   async function handleSave() {
