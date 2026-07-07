@@ -24,3 +24,23 @@ export interface Listing {
   categoryId: string
   categoryName: string
 }
+
+export interface Conversation {
+  id: string
+  listingId: string
+  listingTitle: string
+  counterpartId: string
+  counterpartDisplayName: string
+  lastMessageBody: string | null
+  lastMessageAt: string | null
+  hasUnread: boolean
+}
+
+export interface Message {
+  id: string
+  conversationId: string
+  senderId: string
+  senderDisplayName: string
+  body: string
+  sentAt: string
+}

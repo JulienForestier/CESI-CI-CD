@@ -1,15 +1,20 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ListingDetailPage } from './ListingDetailPage'
 import { ApiError } from '../api/client'
 import * as catalogApi from '../api/catalog'
+import * as chatApi from '../api/chat'
 import { AuthProvider } from '../context/AuthContext'
 import { createTestQueryClient } from '../test/queryClient'
 import type { Listing } from '../types'
 
 vi.mock('../api/catalog')
+vi.mock('../api/chat')
+
+const AUTH_STORAGE_KEY = 'collector-shop-auth'
 
 const listing: Listing = {
   id: 'listing-1',
@@ -24,6 +29,13 @@ const listing: Listing = {
   categoryName: 'Figurines',
 }
 
+function loginAsBuyer() {
+  localStorage.setItem(
+    AUTH_STORAGE_KEY,
+    JSON.stringify({ token: 'jwt-token', userId: 'buyer-1', email: 'buyer@collector.shop', displayName: 'Buyer' }),
+  )
+}
+
 function renderAt(id: string) {
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
@@ -31,6 +43,8 @@ function renderAt(id: string) {
         <AuthProvider>
           <Routes>
             <Route path="/annonces/:id" element={<ListingDetailPage />} />
+            <Route path="/connexion" element={<div>Page de connexion</div>} />
+            <Route path="/messages/:conversationId" element={<div>Fil de conversation</div>} />
           </Routes>
         </AuthProvider>
       </MemoryRouter>
@@ -41,6 +55,7 @@ function renderAt(id: string) {
 describe('ListingDetailPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
+    localStorage.clear()
   })
 
   it('renders the listing once loaded', async () => {
@@ -67,5 +82,60 @@ describe('ListingDetailPage', () => {
     renderAt('listing-1')
 
     expect(await screen.findByText("Erreur lors du chargement de l'annonce.")).toBeInTheDocument()
+  })
+
+  it('navigates to /connexion when contacting the seller while logged out', async () => {
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+
+    renderAt('listing-1')
+
+    await userEvent.click(await screen.findByRole('button', { name: '💬 Discuter avec le vendeur' }))
+
+    expect(await screen.findByText('Page de connexion')).toBeInTheDocument()
+  })
+
+  it('starts a conversation and navigates to the thread when logged in', async () => {
+    loginAsBuyer()
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+    vi.mocked(chatApi.startConversation).mockResolvedValue({ id: 'conv-1' })
+
+    renderAt('listing-1')
+
+    await userEvent.click(await screen.findByRole('button', { name: '💬 Discuter avec le vendeur' }))
+
+    expect(await screen.findByText('Fil de conversation')).toBeInTheDocument()
+    expect(chatApi.startConversation).toHaveBeenCalledWith('jwt-token', 'listing-1')
+  })
+
+  it('shows an error message when starting the conversation fails', async () => {
+    loginAsBuyer()
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+    vi.mocked(chatApi.startConversation).mockRejectedValue(
+      new ApiError(400, 'Vous ne pouvez pas démarrer une conversation avec vous-même.'),
+    )
+
+    renderAt('listing-1')
+
+    await userEvent.click(await screen.findByRole('button', { name: '💬 Discuter avec le vendeur' }))
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('Vous ne pouvez pas démarrer une conversation avec vous-même.'),
+      ).toBeInTheDocument(),
+    )
+  })
+
+  it('hides the contact-seller button for the listing owner', async () => {
+    loginAsBuyer()
+    localStorage.setItem(
+      AUTH_STORAGE_KEY,
+      JSON.stringify({ token: 'jwt-token', userId: 'seller-1', email: 'seller@collector.shop', displayName: 'Vendeur' }),
+    )
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+
+    renderAt('listing-1')
+
+    await screen.findByText('Figurine rare')
+    expect(screen.queryByRole('button', { name: '💬 Discuter avec le vendeur' })).not.toBeInTheDocument()
   })
 })

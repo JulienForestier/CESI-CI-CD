@@ -64,6 +64,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapAuthEndpoints();
 app.MapCatalogEndpoints();
 app.MapFavoriteEndpoints();
+app.MapChatEndpoints();
 
 app.Run();
 
