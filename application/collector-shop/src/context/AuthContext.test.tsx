@@ -13,6 +13,7 @@ const authResponse = {
   userId: 'user-1',
   email: 'demo@collector.shop',
   displayName: 'Demo',
+  isAdmin: false,
 }
 
 function wrapper({ children }: { children: ReactNode }) {

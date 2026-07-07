@@ -8,6 +8,7 @@ export interface AuthUser {
   userId: string
   email: string
   displayName: string
+  isAdmin: boolean
 }
 
 interface AuthContextValue {
@@ -37,6 +38,7 @@ function toAuthUser(response: AuthResponse): AuthUser {
     userId: response.userId,
     email: response.email,
     displayName: response.displayName,
+    isAdmin: response.isAdmin,
   }
 }
 

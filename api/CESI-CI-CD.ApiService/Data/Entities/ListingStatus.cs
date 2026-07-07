@@ -4,4 +4,5 @@ public enum ListingStatus
 {
     Published,
     Rejected,
+    Pending,
 }

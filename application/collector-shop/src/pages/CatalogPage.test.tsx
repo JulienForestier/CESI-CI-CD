@@ -20,6 +20,8 @@ const listings: Listing[] = [
     description: 'Description',
     price: 10,
     status: 'Published',
+    qualityScore: 100,
+    moderationReason: 'RAS',
     createdAt: new Date().toISOString(),
     sellerId: 'seller-1',
     sellerDisplayName: 'Vendeur',

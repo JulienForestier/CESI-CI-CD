@@ -1,8 +1,21 @@
 import { Link } from 'react-router-dom'
 import { PlaceholderImage } from '../components/PlaceholderImage'
 import { useMyListings } from '../hooks/useCatalog'
+import type { ListingStatus } from '../types'
 
 const priceFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
+
+const STATUS_LABELS: Record<ListingStatus, string> = {
+  Published: 'Publiée',
+  Rejected: 'Rejetée',
+  Pending: 'En attente de modération',
+}
+
+const STATUS_CLASSES: Record<ListingStatus, string> = {
+  Published: 'bg-verified text-teal',
+  Rejected: 'bg-shipping text-burnt',
+  Pending: 'bg-shipping text-burnt',
+}
 
 export function MyListingsPage() {
   const listingsQuery = useMyListings()
@@ -29,14 +42,15 @@ export function MyListingsPage() {
             <PlaceholderImage label={`${listing.categoryName.toLowerCase()} · 1/1`} />
             <div className="p-3">
               <span
-                className={`mb-2 inline-block rounded-full px-2 py-0.5 font-ui text-[11px] font-semibold ${
-                  listing.status === 'Published' ? 'bg-verified text-teal' : 'bg-shipping text-burnt'
-                }`}
+                className={`mb-2 inline-block rounded-full px-2 py-0.5 font-ui text-[11px] font-semibold ${STATUS_CLASSES[listing.status]}`}
               >
-                {listing.status === 'Published' ? 'Publiée' : 'Rejetée'}
+                {STATUS_LABELS[listing.status]}
               </span>
               <div className="mb-0.5 font-ui text-[13px] font-bold text-ink">{listing.title}</div>
               <div className="mb-2 text-xs text-brown-2">{listing.categoryName}</div>
+              {listing.status !== 'Published' && (
+                <div className="mb-2 font-ui text-[11px] text-brown-2">{listing.moderationReason}</div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="font-display text-lg">{priceFormatter.format(listing.price)}</span>
                 {listing.status === 'Published' && (

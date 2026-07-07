@@ -18,6 +18,8 @@ const listing: Listing = {
   description: 'Description',
   price: 42,
   status: 'Published',
+  qualityScore: 100,
+  moderationReason: 'RAS',
   createdAt: new Date().toISOString(),
   sellerId: 'seller-1',
   sellerDisplayName: 'Vendeur',
@@ -29,7 +31,7 @@ describe('FavoritesPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A' },
+      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),

@@ -22,6 +22,8 @@ const listing: Listing = {
   description: 'Très bon état',
   price: 42,
   status: 'Published',
+  qualityScore: 100,
+  moderationReason: 'RAS',
   createdAt: new Date().toISOString(),
   sellerId: 'seller-1',
   sellerDisplayName: 'Vendeur',

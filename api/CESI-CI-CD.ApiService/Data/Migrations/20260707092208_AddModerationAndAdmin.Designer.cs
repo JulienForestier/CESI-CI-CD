@@ -3,6 +3,7 @@ using System;
 using CESI_CI_CD.ApiService.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CESICICD.ApiService.Data.Migrations
 {
     [DbContext(typeof(CollectorShopDbContext))]
-    partial class CollectorShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260707092208_AddModerationAndAdmin")]
+    partial class AddModerationAndAdmin
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,42 +55,6 @@ namespace CESICICD.ApiService.Data.Migrations
                             Id = new Guid("33333333-3333-3333-3333-333333333333"),
                             Name = "Sneakers"
                         });
-                });
-
-            modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Conversation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BuyerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("BuyerLastReadAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SellerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("SellerLastReadAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuyerId");
-
-                    b.HasIndex("SellerId");
-
-                    b.HasIndex("ListingId", "BuyerId")
-                        .IsUnique();
-
-                    b.ToTable("Conversations");
                 });
 
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Favorite", b =>
@@ -160,34 +127,6 @@ namespace CESICICD.ApiService.Data.Migrations
                     b.ToTable("Listings");
                 });
 
-            modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Message", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SenderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("SentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConversationId");
-
-                    b.HasIndex("SenderId");
-
-                    b.ToTable("Messages");
-                });
-
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -218,33 +157,6 @@ namespace CESICICD.ApiService.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Conversation", b =>
-                {
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.User", "Buyer")
-                        .WithMany()
-                        .HasForeignKey("BuyerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.Listing", "Listing")
-                        .WithMany()
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.User", "Seller")
-                        .WithMany()
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Buyer");
-
-                    b.Navigation("Listing");
-
-                    b.Navigation("Seller");
                 });
 
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Favorite", b =>
@@ -285,33 +197,9 @@ namespace CESICICD.ApiService.Data.Migrations
                     b.Navigation("Seller");
                 });
 
-            modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Message", b =>
-                {
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.Conversation", "Conversation")
-                        .WithMany("Messages")
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.User", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Conversation");
-
-                    b.Navigation("Sender");
-                });
-
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Category", b =>
                 {
                     b.Navigation("Listings");
-                });
-
-            modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Conversation", b =>
-                {
-                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.User", b =>

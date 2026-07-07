@@ -12,6 +12,8 @@ public record ListingResponse(
     string Description,
     decimal Price,
     ListingStatus Status,
+    int QualityScore,
+    string ModerationReason,
     DateTimeOffset CreatedAt,
     Guid SellerId,
     string SellerDisplayName,

@@ -98,7 +98,7 @@ public static class CatalogEndpoints
                 return Results.BadRequest(new { message = "Catégorie inconnue." });
             }
 
-            var isApproved = moderationService.IsApproved(request.Title, request.Description, request.Price);
+            var review = moderationService.Review(request.Title, request.Description, request.Price);
 
             var listing = new Listing
             {
@@ -106,7 +106,9 @@ public static class CatalogEndpoints
                 Title = request.Title,
                 Description = request.Description,
                 Price = request.Price,
-                Status = isApproved ? ListingStatus.Published : ListingStatus.Rejected,
+                Status = review.Status,
+                QualityScore = review.QualityScore,
+                ModerationReason = review.Reason,
                 SellerId = sellerId.Value,
                 CategoryId = request.CategoryId,
             };

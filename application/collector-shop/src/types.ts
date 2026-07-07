@@ -3,6 +3,7 @@ export interface AuthResponse {
   userId: string
   email: string
   displayName: string
+  isAdmin: boolean
 }
 
 export interface Category {
@@ -10,7 +11,7 @@ export interface Category {
   name: string
 }
 
-export type ListingStatus = 'Published' | 'Rejected'
+export type ListingStatus = 'Published' | 'Rejected' | 'Pending'
 
 export interface Listing {
   id: string
@@ -18,6 +19,8 @@ export interface Listing {
   description: string
   price: number
   status: ListingStatus
+  qualityScore: number
+  moderationReason: string
   createdAt: string
   sellerId: string
   sellerDisplayName: string

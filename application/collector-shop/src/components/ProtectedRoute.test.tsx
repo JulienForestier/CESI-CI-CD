@@ -39,7 +39,7 @@ describe('ProtectedRoute', () => {
 
   it('renders children when a user is authenticated', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'A' },
+      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -61,5 +61,58 @@ describe('ProtectedRoute', () => {
     )
 
     expect(screen.getByText('Contenu protégé')).toBeInTheDocument()
+  })
+
+  it('redirects a non-admin user away from an admin-only route', () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'A', isAdmin: false },
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/admin/moderation']}>
+        <Routes>
+          <Route
+            path="/admin/moderation"
+            element={
+              <ProtectedRoute adminOnly>
+                <div>Contenu admin</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<div>Accueil</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Accueil')).toBeInTheDocument()
+  })
+
+  it('renders children for an admin user on an admin-only route', () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: { token: 't', userId: 'u', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/admin/moderation']}>
+        <Routes>
+          <Route
+            path="/admin/moderation"
+            element={
+              <ProtectedRoute adminOnly>
+                <div>Contenu admin</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Contenu admin')).toBeInTheDocument()
   })
 })

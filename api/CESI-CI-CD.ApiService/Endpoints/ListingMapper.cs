@@ -11,6 +11,8 @@ public static class ListingMapper
         listing.Description,
         listing.Price,
         listing.Status,
+        listing.QualityScore,
+        listing.ModerationReason,
         listing.CreatedAt,
         listing.SellerId,
         listing.Seller?.DisplayName ?? string.Empty,

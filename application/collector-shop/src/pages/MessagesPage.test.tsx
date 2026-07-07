@@ -53,7 +53,7 @@ describe('MessagesPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'buyer-1', email: 'a@b.com', displayName: 'Acheteur Test' },
+      user: { token: 'jwt-token', userId: 'buyer-1', email: 'a@b.com', displayName: 'Acheteur Test', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
