@@ -1,0 +1,96 @@
+import { Route } from 'react-router-dom'
+import { Layout } from './components/Layout'
+import { ProtectedRoute } from './components/ProtectedRoute'
+import { CatalogPage } from './pages/CatalogPage'
+import { FavoritesPage } from './pages/FavoritesPage'
+import { InterestsPage } from './pages/InterestsPage'
+import { ListingDetailPage } from './pages/ListingDetailPage'
+import { LoginPage } from './pages/LoginPage'
+import { MessagesPage } from './pages/MessagesPage'
+import { ModerationPage } from './pages/ModerationPage'
+import { MyListingsPage } from './pages/MyListingsPage'
+import { NewListingPage } from './pages/NewListingPage'
+import { NotificationsPage } from './pages/NotificationsPage'
+import { ProfilePage } from './pages/ProfilePage'
+import { RegisterPage } from './pages/RegisterPage'
+
+export const routeElements = (
+  <Route element={<Layout />}>
+    <Route index element={<CatalogPage />} />
+    <Route path="annonces/:id" element={<ListingDetailPage />} />
+    <Route path="connexion" element={<LoginPage />} />
+    <Route path="inscription" element={<RegisterPage />} />
+    <Route
+      path="annonces/nouvelle"
+      element={
+        <ProtectedRoute>
+          <NewListingPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="mes-annonces"
+      element={
+        <ProtectedRoute>
+          <MyListingsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="favoris"
+      element={
+        <ProtectedRoute>
+          <FavoritesPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="messages"
+      element={
+        <ProtectedRoute>
+          <MessagesPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="messages/:conversationId"
+      element={
+        <ProtectedRoute>
+          <MessagesPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="admin/moderation"
+      element={
+        <ProtectedRoute adminOnly>
+          <ModerationPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="notifications"
+      element={
+        <ProtectedRoute>
+          <NotificationsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="centres-interet"
+      element={
+        <ProtectedRoute>
+          <InterestsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="profil"
+      element={
+        <ProtectedRoute>
+          <ProfilePage />
+        </ProtectedRoute>
+      }
+    />
+  </Route>
+)

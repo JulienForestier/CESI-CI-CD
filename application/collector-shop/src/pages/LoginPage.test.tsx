@@ -29,7 +29,7 @@ describe('LoginPage', () => {
 
   it('logs in and navigates to the catalog on success', async () => {
     const login = vi.fn().mockResolvedValue(undefined)
-    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login, register: vi.fn(), logout: vi.fn() })
+    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login, register: vi.fn(), logout: vi.fn(), updateDisplayName: vi.fn() })
 
     renderPage()
     await userEvent.type(screen.getByLabelText('Adresse email'), 'demo@collector.shop')
@@ -42,7 +42,7 @@ describe('LoginPage', () => {
 
   it('shows an error message on invalid credentials', async () => {
     const login = vi.fn().mockRejectedValue(new ApiError(401, 'Unauthorized'))
-    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login, register: vi.fn(), logout: vi.fn() })
+    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login, register: vi.fn(), logout: vi.fn(), updateDisplayName: vi.fn() })
 
     renderPage()
     await userEvent.type(screen.getByLabelText('Adresse email'), 'demo@collector.shop')
@@ -54,7 +54,7 @@ describe('LoginPage', () => {
 
   it('shows a generic error message on unexpected failures', async () => {
     const login = vi.fn().mockRejectedValue(new Error('boom'))
-    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login, register: vi.fn(), logout: vi.fn() })
+    vi.mocked(AuthContext.useAuth).mockReturnValue({ user: null, login, register: vi.fn(), logout: vi.fn(), updateDisplayName: vi.fn() })
 
     renderPage()
     await userEvent.type(screen.getByLabelText('Adresse email'), 'demo@collector.shop')

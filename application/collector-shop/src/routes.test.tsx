@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router-dom'
+import { createMemoryRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import App from './App'
 import * as catalogApi from './api/catalog'
 import * as AuthContext from './context/AuthContext'
+import { routeElements } from './routes'
 import { createTestQueryClient } from './test/queryClient'
 
 vi.mock('./api/catalog')
@@ -14,11 +14,10 @@ vi.mock('./context/AuthContext', async () => {
 })
 
 function renderAt(path: string) {
+  const router = createMemoryRouter(createRoutesFromElements(routeElements), { initialEntries: [path] })
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>,
   )
 }
@@ -33,6 +32,7 @@ describe('App routing', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
   })
 
@@ -72,6 +72,7 @@ describe('App routing', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
     vi.mocked(catalogApi.getMyListings).mockResolvedValue([])
 

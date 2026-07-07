@@ -40,6 +40,7 @@ describe('NewListingPage', () => {
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
+      updateDisplayName: vi.fn(),
     })
     vi.mocked(catalogApi.getCategories).mockResolvedValue(categories)
   })

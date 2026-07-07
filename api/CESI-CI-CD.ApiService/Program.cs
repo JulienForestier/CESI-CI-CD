@@ -89,6 +89,7 @@ app.MapChatEndpoints();
 app.MapModerationEndpoints();
 app.MapInterestEndpoints();
 app.MapNotificationEndpoints();
+app.MapUserEndpoints();
 
 app.Run();
 
