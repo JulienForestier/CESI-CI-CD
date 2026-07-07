@@ -16,6 +16,7 @@ builder.AddNpgsqlDbContext<CollectorShopDbContext>("collectorshop");
 
 builder.Services.AddScoped<ListingModerationService>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<NotificationService>();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -86,6 +87,8 @@ app.MapCatalogEndpoints();
 app.MapFavoriteEndpoints();
 app.MapChatEndpoints();
 app.MapModerationEndpoints();
+app.MapInterestEndpoints();
+app.MapNotificationEndpoints();
 
 app.Run();
 

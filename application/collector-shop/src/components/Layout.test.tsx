@@ -5,10 +5,12 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Layout } from './Layout'
 import * as chatApi from '../api/chat'
+import * as notificationsApi from '../api/notifications'
 import * as AuthContext from '../context/AuthContext'
 import { createTestQueryClient } from '../test/queryClient'
 
 vi.mock('../api/chat')
+vi.mock('../api/notifications')
 vi.mock('../context/AuthContext', async () => {
   const actual = await vi.importActual<typeof AuthContext>('../context/AuthContext')
   return { ...actual, useAuth: vi.fn() }
@@ -31,6 +33,7 @@ function renderLayout() {
 describe('Layout', () => {
   beforeEach(() => {
     vi.mocked(chatApi.getConversations).mockResolvedValue([])
+    vi.mocked(notificationsApi.getNotifications).mockResolvedValue([])
   })
 
   it('shows login/register links when logged out', () => {
@@ -101,5 +104,43 @@ describe('Layout', () => {
     renderLayout()
 
     expect(await screen.findByText('1')).toBeInTheDocument()
+  })
+
+  it('shows an unread badge when there are unread notifications', async () => {
+    vi.mocked(notificationsApi.getNotifications).mockResolvedValue([
+      {
+        id: 'notif-1',
+        title: 'Nouvelle annonce dans vos centres d\'intérêt',
+        message: 'Une annonce correspond à vos préférences.',
+        type: 'NewListingMatch',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        listingId: 'listing-1',
+      },
+    ])
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    })
+
+    renderLayout()
+
+    expect(await screen.findByText('Notifications')).toBeInTheDocument()
+    expect(await screen.findByText('1')).toBeInTheDocument()
+  })
+
+  it('shows the centres-interet link for logged-in users', () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    })
+
+    renderLayout()
+
+    expect(screen.getByText("Centres d'intérêt")).toBeInTheDocument()
   })
 })

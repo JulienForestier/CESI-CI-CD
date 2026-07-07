@@ -11,6 +11,8 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<Interest> Interests => Set<Interest>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -79,6 +81,34 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
             .WithMany()
             .HasForeignKey(m => m.SenderId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Interest>()
+            .HasIndex(i => new { i.UserId, i.CategoryId })
+            .IsUnique();
+
+        modelBuilder.Entity<Interest>()
+            .HasOne(i => i.User)
+            .WithMany()
+            .HasForeignKey(i => i.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Interest>()
+            .HasOne(i => i.Category)
+            .WithMany()
+            .HasForeignKey(i => i.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.Listing)
+            .WithMany()
+            .HasForeignKey(n => n.ListingId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // Catégories créées par l'admin (cf. contexte métier : seul l'admin crée les catégories)
         modelBuilder.Entity<Category>().HasData(
