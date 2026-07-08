@@ -39,10 +39,15 @@ builder.Services.AddBff(options =>
 
         options.Authority = builder.Configuration["IdentityService:Authority"]
             ?? throw new InvalidOperationException("Configuration 'IdentityService:Authority' manquante.");
-        // Autorise une Authority en http:// en développement local (vérification manuelle sans
-        // certificats) — en dehors de Development, une Authority http déclenchera l'erreur
-        // IDX20803 par défaut, ce qui est le comportement voulu en production.
-        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        // En k8s, Authority pointe vers l'URL interne au cluster (http://identityservice —
+        // trafic cantonné par NetworkPolicy à apiservice/Traefik, pas de service mesh ici) dans
+        // les 3 environnements, y compris rec/prod — dériver cette option de
+        // IHostEnvironment.IsDevelopment() forcerait à tort du https dessus dès que
+        // ASPNETCORE_ENVIRONMENT vaut Staging/Production. On se base donc directement sur le
+        // schéma de l'Authority réellement configurée : seule une Authority http:// l'assouplit,
+        // une Authority https:// (dev local ou future config sans URL interne) continue de
+        // l'exiger normalement.
+        options.RequireHttpsMetadata = !options.Authority.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
         options.ClientId = "collector-shop-bff";
         options.ClientSecret = builder.Configuration["Bff:ClientSecret"] ?? "dev-only-secret-not-for-production";
         options.ResponseType = "code";
