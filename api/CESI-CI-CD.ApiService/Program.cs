@@ -74,13 +74,21 @@ builder.Services.AddBff(options =>
         // client) dès qu'un proxy intermédiaire réécrit le Host (proxy Vite en dev local,
         // ingress avec réécriture en prod). On fixe explicitement les deux URIs de callback
         // pour qu'elles correspondent toujours à ce qui est enregistré côté client OIDC.
+        //
+        // IssuerAddress (authorize/end_session) est lui aussi réécrit : le document de
+        // découverte est récupéré depuis l'Authority interne au cluster (http://identityservice),
+        // donc tous ses endpoints — y compris ceux destinés au navigateur — pointent vers ce nom
+        // interne, injoignable hors du cluster. On ne réécrit que ces deux endpoints "browser-
+        // facing" ; token/userinfo/jwks restent résolus en interne (appels serveur à serveur).
         options.Events.OnRedirectToIdentityProvider = context =>
         {
+            context.ProtocolMessage.IssuerAddress = RewriteOrigin(context.ProtocolMessage.IssuerAddress, bffOrigin);
             context.ProtocolMessage.RedirectUri = $"{bffOrigin}/signin-oidc";
             return Task.CompletedTask;
         };
         options.Events.OnRedirectToIdentityProviderForSignOut = context =>
         {
+            context.ProtocolMessage.IssuerAddress = RewriteOrigin(context.ProtocolMessage.IssuerAddress, bffOrigin);
             context.ProtocolMessage.PostLogoutRedirectUri = $"{bffOrigin}/signout-callback-oidc";
             return Task.CompletedTask;
         };
@@ -136,3 +144,9 @@ app.MapNotificationEndpoints();
 app.MapUserEndpoints();
 
 await app.RunAsync();
+
+static string RewriteOrigin(string url, string publicOrigin)
+{
+    var pathAndQuery = new Uri(url).PathAndQuery;
+    return $"{publicOrigin.TrimEnd('/')}{pathAndQuery}";
+}
