@@ -2,15 +2,18 @@ using System.Net;
 using System.Net.Http.Json;
 using CESI_CI_CD.IdentityService.Contracts;
 using CESI_CI_CD.IdentityService.Endpoints;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace CESI_CI_CD.IdentityService.Tests.Endpoints;
 
 public class AuthEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 {
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     public AuthEndpointsTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
@@ -106,6 +109,16 @@ public class AuthEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<ReturnUrlResponse>();
         Assert.Equal("/", body!.ReturnUrl);
+    }
+
+    [Fact]
+    public async Task Logout_SignsOutAndRedirects_WhenNoActiveLogoutContext()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.GetAsync(IdentityRoutes.Logout);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
     }
 
     private sealed record ReturnUrlResponse(string ReturnUrl);

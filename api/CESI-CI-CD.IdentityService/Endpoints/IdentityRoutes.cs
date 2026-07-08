@@ -9,4 +9,5 @@ public static class IdentityRoutes
     public const string Account = "/account";
     public const string Register = $"{Account}/register";
     public const string Login = $"{Account}/login";
+    public const string Logout = $"{Account}/logout";
 }
