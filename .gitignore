@@ -59,9 +59,11 @@ vite-env.d.ts
 .env.local
 .env.*.local
 .env.production.local
-appsettings.Development.json
 appsettings.*.json
 !appsettings.json
+!api/CESI-CI-CD.ApiService/appsettings.Development.json
+!api/CESI-CI-CD.ApiService/appsettings.Staging.json
+!api/CESI-CI-CD.ApiService/appsettings.Production.json
 
 # User secrets
 secrets.json

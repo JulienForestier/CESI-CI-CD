@@ -33,6 +33,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 ["ConnectionStrings:collectorshop"] = "Host=localhost;Database=unused;Username=unused;Password=unused",
                 ["Jwt:Key"] = "test-signing-key-not-used-in-production-0000000000",
+                ["Cors:AllowedOrigins:0"] = "http://localhost:5173",
             });
         });
 
