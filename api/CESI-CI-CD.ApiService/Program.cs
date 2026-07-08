@@ -43,10 +43,13 @@ builder.Services
 builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireClaim(ClaimTypes.Role, "Admin")));
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? throw new InvalidOperationException("Configuration 'Cors:AllowedOrigins' manquante.");
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy => policy
-        .AllowAnyOrigin()
+        .WithOrigins(allowedOrigins)
         .AllowAnyHeader()
         .AllowAnyMethod());
 });

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -12,6 +13,8 @@ public class TokenService(IConfiguration configuration)
     private const string Audience = "collector-shop-app";
     private static readonly TimeSpan Lifetime = TimeSpan.FromDays(7);
 
+    [SuppressMessage("Security", "S6781:JWT secret keys should not be disclosed",
+        Justification = "La clé provient exclusivement d'une variable d'environnement injectée par un Sealed Secret Kubernetes (Jwt__Key) — jamais codée en dur ni stockée dans appsettings.json, et le démarrage échoue explicitement si elle est absente.")]
     public string GenerateToken(User user)
     {
         var key = configuration["Jwt:Key"]
