@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using CESI_CI_CD.ApiService.Contracts;
+using CESI_CI_CD.ApiService.Endpoints;
 
 namespace CESI_CI_CD.ApiService.Tests.Endpoints;
 
@@ -18,7 +19,7 @@ public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     {
         var email = $"{Guid.NewGuid()}@collector.shop";
         var response = await _client.PostAsJsonAsync(
-            "/api/auth/register",
+            ApiRoutes.Auth.Register,
             new RegisterRequest(email, "P@ssword123", "Utilisateur Test"));
 
         var body = await response.Content.ReadFromJsonAsync<AuthResponse>();
@@ -27,14 +28,14 @@ public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 
     private async Task<List<Guid>> GetAllCategoryIdsAsync()
     {
-        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>("/api/categories");
+        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>(ApiRoutes.Catalog.Categories);
         return categories!.Select(c => c.Id).ToList();
     }
 
     [Fact]
     public async Task GetInterests_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.GetAsync("/api/interests");
+        var response = await _client.GetAsync(ApiRoutes.Interests.Base);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -42,7 +43,7 @@ public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task PutInterests_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.PutAsJsonAsync("/api/interests", new UpdateInterestsRequest([]));
+        var response = await _client.PutAsJsonAsync(ApiRoutes.Interests.Base, new UpdateInterestsRequest([]));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -53,7 +54,7 @@ public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var token = await RegisterUserAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var interests = await _client.GetFromJsonAsync<List<Guid>>("/api/interests");
+        var interests = await _client.GetFromJsonAsync<List<Guid>>(ApiRoutes.Interests.Base);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Empty(interests!);
@@ -65,7 +66,7 @@ public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var token = await RegisterUserAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var response = await _client.PutAsJsonAsync("/api/interests", new UpdateInterestsRequest([Guid.NewGuid()]));
+        var response = await _client.PutAsJsonAsync(ApiRoutes.Interests.Base, new UpdateInterestsRequest([Guid.NewGuid()]));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -78,11 +79,11 @@ public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var token = await RegisterUserAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var first = await _client.PutAsJsonAsync("/api/interests", new UpdateInterestsRequest([categoryIds[0], categoryIds[1]]));
-        var afterFirst = await _client.GetFromJsonAsync<List<Guid>>("/api/interests");
+        var first = await _client.PutAsJsonAsync(ApiRoutes.Interests.Base, new UpdateInterestsRequest([categoryIds[0], categoryIds[1]]));
+        var afterFirst = await _client.GetFromJsonAsync<List<Guid>>(ApiRoutes.Interests.Base);
 
-        var second = await _client.PutAsJsonAsync("/api/interests", new UpdateInterestsRequest([categoryIds[2]]));
-        var afterSecond = await _client.GetFromJsonAsync<List<Guid>>("/api/interests");
+        var second = await _client.PutAsJsonAsync(ApiRoutes.Interests.Base, new UpdateInterestsRequest([categoryIds[2]]));
+        var afterSecond = await _client.GetFromJsonAsync<List<Guid>>(ApiRoutes.Interests.Base);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);

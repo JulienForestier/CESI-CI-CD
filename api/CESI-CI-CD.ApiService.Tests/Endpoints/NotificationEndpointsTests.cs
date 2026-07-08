@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
 using CESI_CI_CD.ApiService.Data.Entities;
+using CESI_CI_CD.ApiService.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -33,7 +34,7 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
     {
         var email = $"{Guid.NewGuid()}@collector.shop";
         var response = await _client.PostAsJsonAsync(
-            "/api/auth/register",
+            ApiRoutes.Auth.Register,
             new RegisterRequest(email, Password, "Utilisateur Test"));
 
         return (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
@@ -49,28 +50,28 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
         entity.IsAdmin = true;
         await db.SaveChangesAsync();
 
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(user.Email, Password));
+        var loginResponse = await _client.PostAsJsonAsync(ApiRoutes.Auth.Login, new LoginRequest(user.Email, Password));
         var loginBody = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
         return loginBody!.Token;
     }
 
     private async Task<Guid> GetAnyCategoryIdAsync()
     {
-        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>("/api/categories");
+        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>(ApiRoutes.Catalog.Categories);
         return categories![0].Id;
     }
 
     private async Task SetInterestAsync(string token, Guid categoryId)
     {
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        await _client.PutAsJsonAsync("/api/interests", new UpdateInterestsRequest([categoryId]));
+        await _client.PutAsJsonAsync(ApiRoutes.Interests.Base, new UpdateInterestsRequest([categoryId]));
         _client.DefaultRequestHeaders.Authorization = null;
     }
 
     private async Task<List<NotificationResponse>> GetNotificationsAsync(string token)
     {
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var notifications = await _client.GetFromJsonAsync<List<NotificationResponse>>("/api/notifications", JsonOptions);
+        var notifications = await _client.GetFromJsonAsync<List<NotificationResponse>>(ApiRoutes.Notifications.Base, JsonOptions);
         _client.DefaultRequestHeaders.Authorization = null;
         return notifications!;
     }
@@ -78,7 +79,7 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
     [Fact]
     public async Task GetNotifications_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.GetAsync("/api/notifications");
+        var response = await _client.GetAsync(ApiRoutes.Notifications.Base);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -86,7 +87,7 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
     [Fact]
     public async Task MarkAllRead_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.PostAsync("/api/notifications/mark-all-read", null);
+        var response = await _client.PostAsync(ApiRoutes.Notifications.MarkAllRead, null);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -112,7 +113,7 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
         await _client.PostAsJsonAsync(
-            "/api/listings",
+            ApiRoutes.Catalog.Listings,
             new CreateListingRequest($"Annonce {Guid.NewGuid():N}", "Description valide et détaillée", 25, categoryId));
         _client.DefaultRequestHeaders.Authorization = null;
 
@@ -136,7 +137,7 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
         var createResponse = await _client.PostAsJsonAsync(
-            "/api/listings",
+            ApiRoutes.Catalog.Listings,
             new CreateListingRequest("Vente urgente collection", "Description tout à fait normale et détaillée", 25, categoryId));
         _client.DefaultRequestHeaders.Authorization = null;
         var listing = await createResponse.Content.ReadFromJsonAsync<ListingResponse>(JsonOptions);
@@ -144,7 +145,7 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
 
         var adminToken = await RegisterAdminAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-        await _client.PostAsync($"/api/admin/listings/{listing.Id}/approve", null);
+        await _client.PostAsync(ApiRoutes.Moderation.Approve(listing.Id), null);
         _client.DefaultRequestHeaders.Authorization = null;
 
         var sellerNotifications = await GetNotificationsAsync(seller.Token);
@@ -162,14 +163,14 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
         var createResponse = await _client.PostAsJsonAsync(
-            "/api/listings",
+            ApiRoutes.Catalog.Listings,
             new CreateListingRequest("Vente urgente collection", "Description tout à fait normale et détaillée", 25, categoryId));
         _client.DefaultRequestHeaders.Authorization = null;
         var listing = await createResponse.Content.ReadFromJsonAsync<ListingResponse>(JsonOptions);
 
         var adminToken = await RegisterAdminAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-        await _client.PostAsJsonAsync($"/api/admin/listings/{listing!.Id}/reject", new RejectListingRequest("Titre non conforme"));
+        await _client.PostAsJsonAsync(ApiRoutes.Moderation.Reject(listing!.Id), new RejectListingRequest("Titre non conforme"));
         _client.DefaultRequestHeaders.Authorization = null;
 
         var sellerNotifications = await GetNotificationsAsync(seller.Token);
@@ -188,12 +189,12 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
         await _client.PostAsJsonAsync(
-            "/api/listings",
+            ApiRoutes.Catalog.Listings,
             new CreateListingRequest($"Annonce {Guid.NewGuid():N}", "Description valide et détaillée", 25, categoryId));
         _client.DefaultRequestHeaders.Authorization = null;
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", interestedBuyer.Token);
-        var markReadResponse = await _client.PostAsync("/api/notifications/mark-all-read", null);
+        var markReadResponse = await _client.PostAsync(ApiRoutes.Notifications.MarkAllRead, null);
         _client.DefaultRequestHeaders.Authorization = null;
 
         var notifications = await GetNotificationsAsync(interestedBuyer.Token);

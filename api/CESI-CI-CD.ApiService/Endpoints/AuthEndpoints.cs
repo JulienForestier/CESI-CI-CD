@@ -11,7 +11,7 @@ public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/auth");
+        var group = app.MapGroup(ApiRoutes.Auth.Base);
 
         group.MapPost("/register", async (
             RegisterRequest request,
@@ -45,7 +45,7 @@ public static class AuthEndpoints
             await db.SaveChangesAsync();
 
             var token = tokenService.GenerateToken(user);
-            return Results.Created($"/api/users/{user.Id}", new AuthResponse(token, user.Id, user.Email, user.DisplayName, user.IsAdmin));
+            return Results.Created($"{ApiRoutes.Users.Base}/{user.Id}", new AuthResponse(token, user.Id, user.Email, user.DisplayName, user.IsAdmin));
         });
 
         group.MapPost("/login", async (

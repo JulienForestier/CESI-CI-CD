@@ -10,7 +10,7 @@ public static class ModerationEndpoints
 {
     public static void MapModerationEndpoints(this IEndpointRouteBuilder app)
     {
-        var api = app.MapGroup("/api/admin").RequireAuthorization("AdminOnly");
+        var api = app.MapGroup(ApiRoutes.Moderation.Base).RequireAuthorization("AdminOnly");
 
         api.MapGet("/listings/pending", async (CollectorShopDbContext db) =>
         {

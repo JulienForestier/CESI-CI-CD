@@ -11,7 +11,7 @@ public static class CatalogEndpoints
 {
     public static void MapCatalogEndpoints(this IEndpointRouteBuilder app)
     {
-        var api = app.MapGroup("/api");
+        var api = app.MapGroup(ApiRoutes.Catalog.Base);
 
         api.MapGet("/categories", async (CollectorShopDbContext db) =>
         {
