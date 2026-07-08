@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CESI_CI_CD.ApiService.Contracts;
+using CESI_CI_CD.ApiService.Endpoints;
 
 namespace CESI_CI_CD.ApiService.Tests.Endpoints;
 
@@ -25,7 +26,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     {
         var email = $"{Guid.NewGuid()}@collector.shop";
         var response = await _client.PostAsJsonAsync(
-            "/api/auth/register",
+            ApiRoutes.Auth.Register,
             new RegisterRequest(email, "P@ssword123", "Utilisateur Test"));
 
         return (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
@@ -33,7 +34,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 
     private async Task<Guid> GetAnyCategoryIdAsync()
     {
-        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>("/api/categories");
+        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>(ApiRoutes.Catalog.Categories);
         return categories![0].Id;
     }
 
@@ -42,7 +43,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var categoryId = await GetAnyCategoryIdAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sellerToken);
         var response = await _client.PostAsJsonAsync(
-            "/api/listings",
+            ApiRoutes.Catalog.Listings,
             new CreateListingRequest($"Annonce {Guid.NewGuid():N}", "Description valide", 25, categoryId));
         _client.DefaultRequestHeaders.Authorization = null;
 
@@ -53,7 +54,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     private async Task<Guid> StartConversationAsync(string buyerToken, Guid listingId)
     {
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
-        var response = await _client.PostAsJsonAsync("/api/conversations", new StartConversationRequest(listingId));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Conversations, new StartConversationRequest(listingId));
         _client.DefaultRequestHeaders.Authorization = null;
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -63,7 +64,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task StartConversation_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.PostAsJsonAsync("/api/conversations", new StartConversationRequest(Guid.NewGuid()));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Conversations, new StartConversationRequest(Guid.NewGuid()));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -71,7 +72,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetConversations_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.GetAsync("/api/conversations");
+        var response = await _client.GetAsync(ApiRoutes.Chat.Conversations);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -79,7 +80,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetMessages_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.GetAsync($"/api/conversations/{Guid.NewGuid()}/messages");
+        var response = await _client.GetAsync(ApiRoutes.Chat.Messages(Guid.NewGuid()));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -88,7 +89,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task SendMessage_ReturnsUnauthorized_WithoutToken()
     {
         var response = await _client.PostAsJsonAsync(
-            $"/api/conversations/{Guid.NewGuid()}/messages",
+            ApiRoutes.Chat.Messages(Guid.NewGuid()),
             new SendMessageRequest("Bonjour"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -100,7 +101,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var buyer = await RegisterUserAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
 
-        var response = await _client.PostAsJsonAsync("/api/conversations", new StartConversationRequest(Guid.NewGuid()));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Conversations, new StartConversationRequest(Guid.NewGuid()));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -113,7 +114,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var listingId = await CreatePublishedListingAsync(seller.Token);
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
-        var response = await _client.PostAsJsonAsync("/api/conversations", new StartConversationRequest(listingId));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Conversations, new StartConversationRequest(listingId));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -141,11 +142,11 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var conversationId = await StartConversationAsync(buyer.Token, listingId);
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
-        var buyerConversations = await _client.GetFromJsonAsync<List<ConversationResponse>>("/api/conversations", JsonOptions);
+        var buyerConversations = await _client.GetFromJsonAsync<List<ConversationResponse>>(ApiRoutes.Chat.Conversations, JsonOptions);
         _client.DefaultRequestHeaders.Authorization = null;
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
-        var sellerConversations = await _client.GetFromJsonAsync<List<ConversationResponse>>("/api/conversations", JsonOptions);
+        var sellerConversations = await _client.GetFromJsonAsync<List<ConversationResponse>>(ApiRoutes.Chat.Conversations, JsonOptions);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Contains(buyerConversations!, c => c.Id == conversationId && c.CounterpartId == seller.UserId);
@@ -163,7 +164,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var conversationId = await StartConversationAsync(buyer.Token, listingId);
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
-        var response = await _client.PostAsJsonAsync($"/api/conversations/{conversationId}/messages", new SendMessageRequest(body));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Messages(conversationId), new SendMessageRequest(body));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -178,7 +179,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var conversationId = await StartConversationAsync(buyer.Token, listingId);
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
-        var response = await _client.PostAsJsonAsync($"/api/conversations/{conversationId}/messages", new SendMessageRequest("   "));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Messages(conversationId), new SendMessageRequest("   "));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -194,14 +195,14 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
         var sendResponse = await _client.PostAsJsonAsync(
-            $"/api/conversations/{conversationId}/messages",
+            ApiRoutes.Chat.Messages(conversationId),
             new SendMessageRequest("Bonjour, l'objet est-il toujours disponible ?"));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.Created, sendResponse.StatusCode);
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
-        var messages = await _client.GetFromJsonAsync<List<MessageResponse>>($"/api/conversations/{conversationId}/messages", JsonOptions);
+        var messages = await _client.GetFromJsonAsync<List<MessageResponse>>(ApiRoutes.Chat.Messages(conversationId), JsonOptions);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Single(messages!, m => m.Body == "Bonjour, l'objet est-il toujours disponible ?" && m.SenderId == buyer.UserId);
@@ -217,7 +218,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var stranger = await RegisterUserAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", stranger.Token);
-        var response = await _client.GetAsync($"/api/conversations/{conversationId}/messages");
+        var response = await _client.GetAsync(ApiRoutes.Chat.Messages(conversationId));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -233,7 +234,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var stranger = await RegisterUserAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", stranger.Token);
-        var response = await _client.PostAsJsonAsync($"/api/conversations/{conversationId}/messages", new SendMessageRequest("Salut"));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Messages(conversationId), new SendMessageRequest("Salut"));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -245,7 +246,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var user = await RegisterUserAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
-        var response = await _client.PostAsJsonAsync($"/api/conversations/{Guid.NewGuid()}/messages", new SendMessageRequest("Salut"));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Messages(Guid.NewGuid()), new SendMessageRequest("Salut"));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -257,7 +258,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var user = await RegisterUserAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
-        var response = await _client.GetAsync($"/api/conversations/{Guid.NewGuid()}/messages");
+        var response = await _client.GetAsync(ApiRoutes.Chat.Messages(Guid.NewGuid()));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

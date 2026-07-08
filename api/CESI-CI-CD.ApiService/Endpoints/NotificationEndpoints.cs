@@ -9,7 +9,7 @@ public static class NotificationEndpoints
 {
     public static void MapNotificationEndpoints(this IEndpointRouteBuilder app)
     {
-        var api = app.MapGroup("/api/notifications").RequireAuthorization();
+        var api = app.MapGroup(ApiRoutes.Notifications.Base).RequireAuthorization();
 
         api.MapGet("", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
         {

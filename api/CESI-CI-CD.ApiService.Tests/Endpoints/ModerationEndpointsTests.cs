@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
 using CESI_CI_CD.ApiService.Data.Entities;
+using CESI_CI_CD.ApiService.Endpoints;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -33,7 +34,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
     {
         var email = $"{Guid.NewGuid()}@collector.shop";
         var response = await _client.PostAsJsonAsync(
-            "/api/auth/register",
+            ApiRoutes.Auth.Register,
             new RegisterRequest(email, Password, "Utilisateur Test"));
 
         return (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
@@ -49,14 +50,14 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         entity.IsAdmin = true;
         await db.SaveChangesAsync();
 
-        var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(user.Email, Password));
+        var loginResponse = await _client.PostAsJsonAsync(ApiRoutes.Auth.Login, new LoginRequest(user.Email, Password));
         var loginBody = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
         return loginBody!.Token;
     }
 
     private async Task<Guid> GetAnyCategoryIdAsync()
     {
-        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>("/api/categories");
+        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>(ApiRoutes.Catalog.Categories);
         return categories![0].Id;
     }
 
@@ -65,7 +66,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var categoryId = await GetAnyCategoryIdAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sellerToken);
         var response = await _client.PostAsJsonAsync(
-            "/api/listings",
+            ApiRoutes.Catalog.Listings,
             new CreateListingRequest($"Annonce {Guid.NewGuid():N}", "Description valide et détaillée", 25, categoryId));
         _client.DefaultRequestHeaders.Authorization = null;
 
@@ -78,7 +79,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var categoryId = await GetAnyCategoryIdAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sellerToken);
         var response = await _client.PostAsJsonAsync(
-            "/api/listings",
+            ApiRoutes.Catalog.Listings,
             new CreateListingRequest("Vente urgente collection", "Description tout à fait normale et détaillée", 25, categoryId));
         _client.DefaultRequestHeaders.Authorization = null;
 
@@ -90,7 +91,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
     [Fact]
     public async Task GetPendingListings_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.GetAsync("/api/admin/listings/pending");
+        var response = await _client.GetAsync(ApiRoutes.Moderation.PendingListings);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -101,7 +102,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var user = await RegisterUserAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
 
-        var response = await _client.GetAsync("/api/admin/listings/pending");
+        var response = await _client.GetAsync(ApiRoutes.Moderation.PendingListings);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -116,7 +117,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var adminToken = await RegisterAdminAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-        var pending = await _client.GetFromJsonAsync<List<ListingResponse>>("/api/admin/listings/pending", JsonOptions);
+        var pending = await _client.GetFromJsonAsync<List<ListingResponse>>(ApiRoutes.Moderation.PendingListings, JsonOptions);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Contains(pending!, l => l.Id == pendingId);
@@ -131,14 +132,14 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var adminToken = await RegisterAdminAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-        var response = await _client.PostAsync($"/api/admin/listings/{pendingId}/approve", null);
+        var response = await _client.PostAsync(ApiRoutes.Moderation.Approve(pendingId), null);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<ListingResponse>(JsonOptions);
         Assert.Equal(ListingStatus.Published, body!.Status);
 
-        var publicListing = await _client.GetFromJsonAsync<ListingResponse>($"/api/listings/{pendingId}", JsonOptions);
+        var publicListing = await _client.GetFromJsonAsync<ListingResponse>(ApiRoutes.Catalog.ListingById(pendingId), JsonOptions);
         Assert.NotNull(publicListing);
     }
 
@@ -148,7 +149,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var adminToken = await RegisterAdminAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
 
-        var response = await _client.PostAsync($"/api/admin/listings/{Guid.NewGuid()}/approve", null);
+        var response = await _client.PostAsync(ApiRoutes.Moderation.Approve(Guid.NewGuid()), null);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -162,7 +163,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var adminToken = await RegisterAdminAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-        var response = await _client.PostAsync($"/api/admin/listings/{publishedId}/approve", null);
+        var response = await _client.PostAsync(ApiRoutes.Moderation.Approve(publishedId), null);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -175,7 +176,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var pendingId = await CreatePendingListingAsync(seller.Token);
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
-        var response = await _client.PostAsJsonAsync($"/api/admin/listings/{pendingId}/reject", new RejectListingRequest("Titre non conforme"));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Moderation.Reject(pendingId), new RejectListingRequest("Titre non conforme"));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -189,7 +190,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var adminToken = await RegisterAdminAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-        var response = await _client.PostAsJsonAsync($"/api/admin/listings/{pendingId}/reject", new RejectListingRequest("Titre non conforme à la charte"));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Moderation.Reject(pendingId), new RejectListingRequest("Titre non conforme à la charte"));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -206,7 +207,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var adminToken = await RegisterAdminAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-        var response = await _client.PostAsJsonAsync($"/api/admin/listings/{pendingId}/reject", new RejectListingRequest("   "));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Moderation.Reject(pendingId), new RejectListingRequest("   "));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -220,7 +221,7 @@ public class ModerationEndpointsTests : IClassFixture<CustomWebApplicationFactor
         var adminToken = await RegisterAdminAsync();
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
-        var response = await _client.PostAsJsonAsync($"/api/admin/listings/{publishedId}/reject", new RejectListingRequest("Motif"));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Moderation.Reject(publishedId), new RejectListingRequest("Motif"));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

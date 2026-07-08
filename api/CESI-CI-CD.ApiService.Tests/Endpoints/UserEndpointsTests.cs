@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using CESI_CI_CD.ApiService.Contracts;
+using CESI_CI_CD.ApiService.Endpoints;
 
 namespace CESI_CI_CD.ApiService.Tests.Endpoints;
 
@@ -18,7 +19,7 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     {
         var email = $"{Guid.NewGuid()}@collector.shop";
         var response = await _client.PostAsJsonAsync(
-            "/api/auth/register",
+            ApiRoutes.Auth.Register,
             new RegisterRequest(email, "P@ssword123", "Utilisateur Test"));
 
         return (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
@@ -27,7 +28,7 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetMe_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.GetAsync("/api/users/me");
+        var response = await _client.GetAsync(ApiRoutes.Users.Me);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -35,7 +36,7 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task PatchMe_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.PatchAsJsonAsync("/api/users/me", new UpdateProfileRequest("Nouveau pseudo"));
+        var response = await _client.PatchAsJsonAsync(ApiRoutes.Users.Me, new UpdateProfileRequest("Nouveau pseudo"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -46,7 +47,7 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var user = await RegisterUserAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
 
-        var profile = await _client.GetFromJsonAsync<UserProfileResponse>("/api/users/me");
+        var profile = await _client.GetFromJsonAsync<UserProfileResponse>(ApiRoutes.Users.Me);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(user.UserId, profile!.Id);
@@ -61,9 +62,9 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var user = await RegisterUserAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
 
-        var response = await _client.PatchAsJsonAsync("/api/users/me", new UpdateProfileRequest("Nouveau pseudo"));
+        var response = await _client.PatchAsJsonAsync(ApiRoutes.Users.Me, new UpdateProfileRequest("Nouveau pseudo"));
         var updated = await response.Content.ReadFromJsonAsync<UserProfileResponse>();
-        var profile = await _client.GetFromJsonAsync<UserProfileResponse>("/api/users/me");
+        var profile = await _client.GetFromJsonAsync<UserProfileResponse>(ApiRoutes.Users.Me);
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -79,7 +80,7 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         var user = await RegisterUserAsync();
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
 
-        var response = await _client.PatchAsJsonAsync("/api/users/me", new UpdateProfileRequest(displayName));
+        var response = await _client.PatchAsJsonAsync(ApiRoutes.Users.Me, new UpdateProfileRequest(displayName));
         _client.DefaultRequestHeaders.Authorization = null;
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

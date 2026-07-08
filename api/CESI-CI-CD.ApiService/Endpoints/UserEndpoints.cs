@@ -9,7 +9,7 @@ public static class UserEndpoints
 {
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
-        var api = app.MapGroup("/api/users").RequireAuthorization();
+        var api = app.MapGroup(ApiRoutes.Users.Base).RequireAuthorization();
 
         api.MapGet("/me", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
         {
