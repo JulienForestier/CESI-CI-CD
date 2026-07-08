@@ -108,7 +108,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: application/collector-shop
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build frontend
         working-directory: application/collector-shop

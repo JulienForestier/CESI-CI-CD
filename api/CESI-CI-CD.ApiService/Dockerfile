@@ -15,6 +15,9 @@ WORKDIR /app
 # Copier les artefacts publiés
 COPY --from=builder /app/publish .
 
+# Exécuter en non-root (utilisateur "app" fourni par l'image de base .NET)
+USER $APP_UID
+
 # Port d'exposition
 EXPOSE 8080
 
