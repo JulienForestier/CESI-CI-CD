@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LoginPage } from './LoginPage'
 import * as AuthContext from '../context/AuthContext'
@@ -46,5 +47,29 @@ describe('LoginPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Continuer' }))
 
     expect(login).toHaveBeenCalled()
+  })
+
+  it('does not redirect to the identity service when already authenticated', () => {
+    const login = vi.fn()
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isLoading: false,
+      user: { userId: '1', email: 'a@b.com', displayName: 'A', isAdmin: false },
+      login,
+      register: vi.fn(),
+      logout: vi.fn(),
+      updateDisplayName: vi.fn(),
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/connexion']}>
+        <Routes>
+          <Route path="/connexion" element={<LoginPage />} />
+          <Route path="/" element={<div>Home</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(login).not.toHaveBeenCalled()
+    expect(screen.getByText('Home')).toBeInTheDocument()
   })
 })

@@ -1,12 +1,22 @@
 import { useEffect } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, user, isLoading } = useAuth()
 
+  // login() renvoie ici (returnUrl = chemin courant) une fois le flow OIDC terminé — si on
+  // redéclenchait login() inconditionnellement à chaque montage, un utilisateur déjà authentifié
+  // atterrissant sur /connexion relancerait indéfiniment le flow (boucle de rechargement infinie).
   useEffect(() => {
-    login()
-  }, [login])
+    if (!isLoading && !user) {
+      login()
+    }
+  }, [login, user, isLoading])
+
+  if (user) {
+    return <Navigate to="/" replace />
+  }
 
   return (
     <div className="mx-auto max-w-md rounded-2xl border-[1.5px] border-ink/15 bg-card p-10 text-center">

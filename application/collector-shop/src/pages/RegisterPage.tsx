@@ -1,12 +1,21 @@
 import { useEffect } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export function RegisterPage() {
-  const { register } = useAuth()
+  const { register, user, isLoading } = useAuth()
 
+  // Même garde que LoginPage : register() (alias de login()) renvoie ici une fois le flow OIDC
+  // terminé — sans cette garde, un utilisateur déjà authentifié relancerait indéfiniment le flow.
   useEffect(() => {
-    register()
-  }, [register])
+    if (!isLoading && !user) {
+      register()
+    }
+  }, [register, user, isLoading])
+
+  if (user) {
+    return <Navigate to="/" replace />
+  }
 
   return (
     <div className="mx-auto max-w-md rounded-2xl border-[1.5px] border-ink/15 bg-card p-10 text-center">
