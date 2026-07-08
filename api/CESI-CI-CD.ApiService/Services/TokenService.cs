@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using CESI_CI_CD.ApiService.Configuration;
 using CESI_CI_CD.ApiService.Data.Entities;
 using Microsoft.IdentityModel.Tokens;
 
@@ -9,19 +10,15 @@ namespace CESI_CI_CD.ApiService.Services;
 
 public class TokenService(IConfiguration configuration)
 {
-    private const string Issuer = "collector-shop-api";
-    private const string Audience = "collector-shop-app";
-    private static readonly TimeSpan Lifetime = TimeSpan.FromDays(7);
-
     [SuppressMessage("Security", "S6781:JWT secret keys should not be disclosed",
         Justification = "La clé provient exclusivement d'une variable d'environnement injectée par un Sealed Secret Kubernetes (Jwt__Key) — jamais codée en dur ni stockée dans appsettings.json, et le démarrage échoue explicitement si elle est absente.")]
     public string GenerateToken(User user)
     {
-        var key = configuration["Jwt:Key"]
-            ?? throw new InvalidOperationException("Configuration 'Jwt:Key' manquante.");
+        var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+            ?? throw new InvalidOperationException($"Configuration '{JwtOptions.SectionName}' manquante.");
 
         var signingCredentials = new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
             SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim>
@@ -37,10 +34,10 @@ public class TokenService(IConfiguration configuration)
         }
 
         var token = new JwtSecurityToken(
-            issuer: Issuer,
-            audience: Audience,
+            issuer: jwtOptions.Issuer,
+            audience: jwtOptions.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.Add(Lifetime),
+            expires: DateTime.UtcNow.AddDays(jwtOptions.LifetimeDays),
             signingCredentials: signingCredentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
