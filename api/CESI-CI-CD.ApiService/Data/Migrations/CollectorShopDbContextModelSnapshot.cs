@@ -277,7 +277,10 @@ namespace CESICICD.ApiService.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Conversation", b =>

@@ -12,6 +12,7 @@ vi.mock('../context/AuthContext', async () => {
 describe('ProtectedRoute', () => {
   it('redirects to /connexion when there is no authenticated user', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isLoading: false,
       user: null,
       login: vi.fn(),
       register: vi.fn(),
@@ -40,7 +41,8 @@ describe('ProtectedRoute', () => {
 
   it('renders children when a user is authenticated', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'A', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'u', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -67,7 +69,8 @@ describe('ProtectedRoute', () => {
 
   it('redirects a non-admin user away from an admin-only route', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'A', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'u', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -95,7 +98,8 @@ describe('ProtectedRoute', () => {
 
   it('renders children for an admin user on an admin-only route', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
+      isLoading: false,
+      user: { userId: 'u', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),

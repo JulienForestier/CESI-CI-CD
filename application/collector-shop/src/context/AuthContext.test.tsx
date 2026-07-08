@@ -3,18 +3,20 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as authApi from '../api/auth'
+import type { BffClaim } from '../api/auth'
 import { createTestQueryClient } from '../test/queryClient'
 import { AuthProvider, useAuth } from './AuthContext'
 
 vi.mock('../api/auth')
 
-const authResponse = {
-  token: 'jwt-token',
-  userId: 'user-1',
-  email: 'demo@collector.shop',
-  displayName: 'Demo',
-  isAdmin: false,
-}
+const claims: BffClaim[] = [
+  { type: 'sub', value: 'user-1' },
+  { type: 'email', value: 'demo@collector.shop' },
+  { type: 'name', value: 'Demo' },
+  { type: 'bff:logout_url', value: '/bff/logout?sid=abc' },
+]
+
+const adminClaims: BffClaim[] = [...claims, { type: 'role', value: 'Admin' }]
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
@@ -26,83 +28,98 @@ function wrapper({ children }: { children: ReactNode }) {
 
 describe('AuthContext', () => {
   beforeEach(() => {
-    localStorage.clear()
     vi.restoreAllMocks()
+    // jsdom refuses real navigation ("Not implemented: navigation to another Document") —
+    // login/register/logout intentionally trigger a full-page redirect, so replace `location`
+    // with a plain writable object to observe where they tried to send the browser.
+    // @ts-expect-error test-only override of a read-only global
+    delete window.location
+    // @ts-expect-error test-only override of a read-only global
+    window.location = { href: '', pathname: '/profil', search: '' }
   })
 
-  it('starts with no user when nothing is stored', () => {
+  it('starts loading, then has no user when there is no active session', async () => {
+    vi.mocked(authApi.getUserClaims).mockResolvedValue(null)
     const { result } = renderHook(() => useAuth(), { wrapper })
 
+    expect(result.current.isLoading).toBe(true)
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.user).toBeNull()
   })
 
-  it('restores the user from localStorage on init', () => {
-    localStorage.setItem('collector-shop-auth', JSON.stringify(authResponse))
-
+  it('derives the user from the session claims', async () => {
+    vi.mocked(authApi.getUserClaims).mockResolvedValue(claims)
     const { result } = renderHook(() => useAuth(), { wrapper })
 
-    expect(result.current.user?.email).toBe('demo@collector.shop')
+    await waitFor(() => expect(result.current.user?.email).toBe('demo@collector.shop'))
+    expect(result.current.user).toEqual({
+      userId: 'user-1',
+      email: 'demo@collector.shop',
+      displayName: 'Demo',
+      isAdmin: false,
+    })
   })
 
-  it('ignores corrupted localStorage content', () => {
-    localStorage.setItem('collector-shop-auth', 'not-json')
-
+  it('marks the user as admin when the role claim is present', async () => {
+    vi.mocked(authApi.getUserClaims).mockResolvedValue(adminClaims)
     const { result } = renderHook(() => useAuth(), { wrapper })
 
+    await waitFor(() => expect(result.current.user?.isAdmin).toBe(true))
+  })
+
+  it('treats a session fetch failure as logged out', async () => {
+    vi.mocked(authApi.getUserClaims).mockRejectedValue(new Error('network error'))
+    const { result } = renderHook(() => useAuth(), { wrapper })
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.user).toBeNull()
   })
 
-  it('login stores the user and persists it', async () => {
-    vi.mocked(authApi.login).mockResolvedValue(authResponse)
+  it('login redirects to /bff/login', async () => {
+    vi.mocked(authApi.getUserClaims).mockResolvedValue(null)
     const { result } = renderHook(() => useAuth(), { wrapper })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-    await act(async () => {
-      await result.current.login('demo@collector.shop', 'password')
-    })
+    act(() => result.current.login())
 
-    await waitFor(() => expect(result.current.user?.token).toBe('jwt-token'))
-    expect(JSON.parse(localStorage.getItem('collector-shop-auth')!).userId).toBe('user-1')
+    expect(window.location.href).toContain('/bff/login?returnUrl=')
   })
 
-  it('register stores the user', async () => {
-    vi.mocked(authApi.register).mockResolvedValue(authResponse)
+  it('register also redirects to /bff/login (form selection happens on the identity page)', async () => {
+    vi.mocked(authApi.getUserClaims).mockResolvedValue(null)
     const { result } = renderHook(() => useAuth(), { wrapper })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-    await act(async () => {
-      await result.current.register('demo@collector.shop', 'password', 'Demo')
-    })
+    act(() => result.current.register())
 
-    expect(result.current.user?.displayName).toBe('Demo')
+    expect(window.location.href).toContain('/bff/login?returnUrl=')
   })
 
-  it('logout clears the user and localStorage', async () => {
-    vi.mocked(authApi.login).mockResolvedValue(authResponse)
+  it('logout redirects to the bff:logout_url claim', async () => {
+    vi.mocked(authApi.getUserClaims).mockResolvedValue(claims)
     const { result } = renderHook(() => useAuth(), { wrapper })
+    await waitFor(() => expect(result.current.user).not.toBeNull())
 
-    await act(async () => {
-      await result.current.login('demo@collector.shop', 'password')
-    })
     act(() => result.current.logout())
 
-    expect(result.current.user).toBeNull()
-    expect(localStorage.getItem('collector-shop-auth')).toBeNull()
+    expect(window.location.href).toBe('/bff/logout?sid=abc')
   })
 
-  it('updateDisplayName updates the user and persists it', async () => {
-    vi.mocked(authApi.login).mockResolvedValue(authResponse)
+  it('updateDisplayName updates the in-memory user only', async () => {
+    vi.mocked(authApi.getUserClaims).mockResolvedValue(claims)
     const { result } = renderHook(() => useAuth(), { wrapper })
+    await waitFor(() => expect(result.current.user).not.toBeNull())
 
-    await act(async () => {
-      await result.current.login('demo@collector.shop', 'password')
-    })
     act(() => result.current.updateDisplayName('Nouveau pseudo'))
 
     expect(result.current.user?.displayName).toBe('Nouveau pseudo')
-    expect(JSON.parse(localStorage.getItem('collector-shop-auth')!).displayName).toBe('Nouveau pseudo')
   })
 
-  it('updateDisplayName does nothing when there is no user', () => {
+  it('updateDisplayName does nothing when there is no user', async () => {
+    vi.mocked(authApi.getUserClaims).mockResolvedValue(null)
     const { result } = renderHook(() => useAuth(), { wrapper })
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
 
     act(() => result.current.updateDisplayName('Nouveau pseudo'))
 

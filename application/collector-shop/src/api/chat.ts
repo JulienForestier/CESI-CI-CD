@@ -1,22 +1,21 @@
 import { apiFetch } from './client'
 import type { Conversation, Message } from '../types'
 
-export function getConversations(token: string) {
-  return apiFetch<Conversation[]>('/conversations', { token })
+export function getConversations() {
+  return apiFetch<Conversation[]>('/conversations')
 }
 
-export function startConversation(token: string, listingId: string) {
-  return apiFetch<{ id: string }>('/conversations', { method: 'POST', token, body: { listingId } })
+export function startConversation(listingId: string) {
+  return apiFetch<{ id: string }>('/conversations', { method: 'POST', body: { listingId } })
 }
 
-export function getMessages(token: string, conversationId: string) {
-  return apiFetch<Message[]>(`/conversations/${conversationId}/messages`, { token })
+export function getMessages(conversationId: string) {
+  return apiFetch<Message[]>(`/conversations/${conversationId}/messages`)
 }
 
-export function sendMessage(token: string, conversationId: string, body: string) {
+export function sendMessage(conversationId: string, body: string) {
   return apiFetch<Message>(`/conversations/${conversationId}/messages`, {
     method: 'POST',
-    token,
     body: { body },
   })
 }

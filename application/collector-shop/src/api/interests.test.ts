@@ -5,22 +5,21 @@ import * as client from './client'
 vi.mock('./client')
 
 describe('interests api', () => {
-  it('getInterests calls /interests with the bearer token', async () => {
+  it('getInterests calls /interests', async () => {
     vi.mocked(client.apiFetch).mockResolvedValue([])
 
-    await getInterests('jwt-token')
+    await getInterests()
 
-    expect(client.apiFetch).toHaveBeenCalledWith('/interests', { token: 'jwt-token' })
+    expect(client.apiFetch).toHaveBeenCalledWith('/interests')
   })
 
   it('updateInterests PUTs /interests with the category ids', async () => {
     vi.mocked(client.apiFetch).mockResolvedValue(undefined)
 
-    await updateInterests('jwt-token', ['cat-1', 'cat-2'])
+    await updateInterests(['cat-1', 'cat-2'])
 
     expect(client.apiFetch).toHaveBeenCalledWith('/interests', {
       method: 'PUT',
-      token: 'jwt-token',
       body: { categoryIds: ['cat-1', 'cat-2'] },
     })
   })

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
+using Duende.Bff;
 using Microsoft.EntityFrameworkCore;
 
 namespace CESI_CI_CD.ApiService.Endpoints;
@@ -10,6 +11,7 @@ public static class UserEndpoints
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
         var api = app.MapGroup(ApiRoutes.Users.Base).RequireAuthorization();
+        api.AsBffApiEndpoint();
 
         api.MapGet("/me", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
         {

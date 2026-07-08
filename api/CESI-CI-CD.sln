@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CESI-CI-CD.ApiService", "CE
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CESI-CI-CD.ApiService.Tests", "CESI-CI-CD.ApiService.Tests\CESI-CI-CD.ApiService.Tests.csproj", "{1A6790AC-37BA-4659-9D33-7677D7E99D57}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CESI-CI-CD.IdentityService", "CESI-CI-CD.IdentityService\CESI-CI-CD.IdentityService.csproj", "{1DE6B7EF-207B-40CF-BB63-FF84147E9788}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +54,18 @@ Global
 		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Release|x64.Build.0 = Release|Any CPU
 		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Release|x86.ActiveCfg = Release|Any CPU
 		{1A6790AC-37BA-4659-9D33-7677D7E99D57}.Release|x86.Build.0 = Release|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Debug|x64.Build.0 = Debug|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Debug|x86.Build.0 = Debug|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Release|x64.ActiveCfg = Release|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Release|x64.Build.0 = Release|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Release|x86.ActiveCfg = Release|Any CPU
+		{1DE6B7EF-207B-40CF-BB63-FF84147E9788}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

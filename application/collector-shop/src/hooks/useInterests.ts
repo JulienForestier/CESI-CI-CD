@@ -7,17 +7,16 @@ export function useInterests() {
 
   return useQuery({
     queryKey: ['interests', user?.userId],
-    queryFn: () => interestsApi.getInterests(user!.token),
+    queryFn: () => interestsApi.getInterests(),
     enabled: Boolean(user),
   })
 }
 
 export function useUpdateInterests() {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (categoryIds: string[]) => interestsApi.updateInterests(user!.token, categoryIds),
+    mutationFn: (categoryIds: string[]) => interestsApi.updateInterests(categoryIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['interests'] })
     },

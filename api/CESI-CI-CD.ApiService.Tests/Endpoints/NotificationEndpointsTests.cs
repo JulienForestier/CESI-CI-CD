@@ -1,21 +1,15 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CESI_CI_CD.ApiService.Contracts;
-using CESI_CI_CD.ApiService.Data;
 using CESI_CI_CD.ApiService.Data.Entities;
 using CESI_CI_CD.ApiService.Endpoints;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace CESI_CI_CD.ApiService.Tests.Endpoints;
 
 public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 {
-    private const string Password = "P@ssword123";
-
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter() },
@@ -30,30 +24,9 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
         _client = factory.CreateClient();
     }
 
-    private async Task<AuthResponse> RegisterUserAsync()
-    {
-        var email = $"{Guid.NewGuid()}@collector.shop";
-        var response = await _client.PostAsJsonAsync(
-            ApiRoutes.Auth.Register,
-            new RegisterRequest(email, Password, "Utilisateur Test"));
+    private Task<TestUser> RegisterUserAsync() => TestAuthHelper.CreateUserAsync(_factory, displayName: "Utilisateur Test");
 
-        return (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
-    }
-
-    private async Task<string> RegisterAdminAsync()
-    {
-        var user = await RegisterUserAsync();
-
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<CollectorShopDbContext>();
-        var entity = await db.Users.FirstAsync(u => u.Id == user.UserId);
-        entity.IsAdmin = true;
-        await db.SaveChangesAsync();
-
-        var loginResponse = await _client.PostAsJsonAsync(ApiRoutes.Auth.Login, new LoginRequest(user.Email, Password));
-        var loginBody = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
-        return loginBody!.Token;
-    }
+    private Task<TestUser> RegisterAdminAsync() => TestAuthHelper.CreateUserAsync(_factory, displayName: "Admin Test", isAdmin: true);
 
     private async Task<Guid> GetAnyCategoryIdAsync()
     {
@@ -61,18 +34,18 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
         return categories![0].Id;
     }
 
-    private async Task SetInterestAsync(string token, Guid categoryId)
+    private async Task SetInterestAsync(TestUser user, Guid categoryId)
     {
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        TestAuthHelper.AuthenticateAs(_client, user);
         await _client.PutAsJsonAsync(ApiRoutes.Interests.Base, new UpdateInterestsRequest([categoryId]));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
     }
 
-    private async Task<List<NotificationResponse>> GetNotificationsAsync(string token)
+    private async Task<List<NotificationResponse>> GetNotificationsAsync(TestUser user)
     {
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        TestAuthHelper.AuthenticateAs(_client, user);
         var notifications = await _client.GetFromJsonAsync<List<NotificationResponse>>(ApiRoutes.Notifications.Base, JsonOptions);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
         return notifications!;
     }
 
@@ -97,7 +70,7 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
     {
         var user = await RegisterUserAsync();
 
-        var notifications = await GetNotificationsAsync(user.Token);
+        var notifications = await GetNotificationsAsync(user);
 
         Assert.Empty(notifications);
     }
@@ -107,19 +80,19 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
     {
         var categoryId = await GetAnyCategoryIdAsync();
         var interestedBuyer = await RegisterUserAsync();
-        await SetInterestAsync(interestedBuyer.Token, categoryId);
+        await SetInterestAsync(interestedBuyer, categoryId);
         var uninterestedBuyer = await RegisterUserAsync();
         var seller = await RegisterUserAsync();
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
+        TestAuthHelper.AuthenticateAs(_client, seller);
         await _client.PostAsJsonAsync(
             ApiRoutes.Catalog.Listings,
             new CreateListingRequest($"Annonce {Guid.NewGuid():N}", "Description valide et détaillée", 25, categoryId));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
-        var interestedNotifications = await GetNotificationsAsync(interestedBuyer.Token);
-        var uninterestedNotifications = await GetNotificationsAsync(uninterestedBuyer.Token);
-        var sellerNotifications = await GetNotificationsAsync(seller.Token);
+        var interestedNotifications = await GetNotificationsAsync(interestedBuyer);
+        var uninterestedNotifications = await GetNotificationsAsync(uninterestedBuyer);
+        var sellerNotifications = await GetNotificationsAsync(seller);
 
         Assert.Single(interestedNotifications, n => n.Type == NotificationType.NewListingMatch);
         Assert.False(interestedNotifications[0].IsRead);
@@ -132,24 +105,24 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
     {
         var categoryId = await GetAnyCategoryIdAsync();
         var interestedBuyer = await RegisterUserAsync();
-        await SetInterestAsync(interestedBuyer.Token, categoryId);
+        await SetInterestAsync(interestedBuyer, categoryId);
         var seller = await RegisterUserAsync();
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
+        TestAuthHelper.AuthenticateAs(_client, seller);
         var createResponse = await _client.PostAsJsonAsync(
             ApiRoutes.Catalog.Listings,
             new CreateListingRequest("Vente urgente collection", "Description tout à fait normale et détaillée", 25, categoryId));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
         var listing = await createResponse.Content.ReadFromJsonAsync<ListingResponse>(JsonOptions);
         Assert.Equal(ListingStatus.Pending, listing!.Status);
 
-        var adminToken = await RegisterAdminAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var admin = await RegisterAdminAsync();
+        TestAuthHelper.AuthenticateAs(_client, admin);
         await _client.PostAsync(ApiRoutes.Moderation.Approve(listing.Id), null);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
-        var sellerNotifications = await GetNotificationsAsync(seller.Token);
-        var interestedNotifications = await GetNotificationsAsync(interestedBuyer.Token);
+        var sellerNotifications = await GetNotificationsAsync(seller);
+        var interestedNotifications = await GetNotificationsAsync(interestedBuyer);
 
         Assert.Single(sellerNotifications, n => n.Type == NotificationType.ListingApproved);
         Assert.Single(interestedNotifications, n => n.Type == NotificationType.NewListingMatch);
@@ -161,19 +134,19 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
         var categoryId = await GetAnyCategoryIdAsync();
         var seller = await RegisterUserAsync();
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
+        TestAuthHelper.AuthenticateAs(_client, seller);
         var createResponse = await _client.PostAsJsonAsync(
             ApiRoutes.Catalog.Listings,
             new CreateListingRequest("Vente urgente collection", "Description tout à fait normale et détaillée", 25, categoryId));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
         var listing = await createResponse.Content.ReadFromJsonAsync<ListingResponse>(JsonOptions);
 
-        var adminToken = await RegisterAdminAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var admin = await RegisterAdminAsync();
+        TestAuthHelper.AuthenticateAs(_client, admin);
         await _client.PostAsJsonAsync(ApiRoutes.Moderation.Reject(listing!.Id), new RejectListingRequest("Titre non conforme"));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
-        var sellerNotifications = await GetNotificationsAsync(seller.Token);
+        var sellerNotifications = await GetNotificationsAsync(seller);
 
         var notification = Assert.Single(sellerNotifications, n => n.Type == NotificationType.ListingRejected);
         Assert.Contains("Titre non conforme", notification.Message);
@@ -184,20 +157,20 @@ public class NotificationEndpointsTests : IClassFixture<CustomWebApplicationFact
     {
         var categoryId = await GetAnyCategoryIdAsync();
         var interestedBuyer = await RegisterUserAsync();
-        await SetInterestAsync(interestedBuyer.Token, categoryId);
+        await SetInterestAsync(interestedBuyer, categoryId);
         var seller = await RegisterUserAsync();
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
+        TestAuthHelper.AuthenticateAs(_client, seller);
         await _client.PostAsJsonAsync(
             ApiRoutes.Catalog.Listings,
             new CreateListingRequest($"Annonce {Guid.NewGuid():N}", "Description valide et détaillée", 25, categoryId));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", interestedBuyer.Token);
+        TestAuthHelper.AuthenticateAs(_client, interestedBuyer);
         var markReadResponse = await _client.PostAsync(ApiRoutes.Notifications.MarkAllRead, null);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
-        var notifications = await GetNotificationsAsync(interestedBuyer.Token);
+        var notifications = await GetNotificationsAsync(interestedBuyer);
 
         Assert.Equal(HttpStatusCode.NoContent, markReadResponse.StatusCode);
         Assert.All(notifications, n => Assert.True(n.IsRead));

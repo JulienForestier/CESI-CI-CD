@@ -6,13 +6,6 @@ namespace CESI_CI_CD.ApiService.Endpoints;
 /// </summary>
 public static class ApiRoutes
 {
-    public static class Auth
-    {
-        public const string Base = "/api/auth";
-        public const string Register = $"{Base}/register";
-        public const string Login = $"{Base}/login";
-    }
-
     public static class Catalog
     {
         public const string Base = "/api";

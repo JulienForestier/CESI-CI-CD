@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
+using Duende.Bff;
 using CESI_CI_CD.ApiService.Data.Entities;
 using CESI_CI_CD.ApiService.Services;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ public static class ChatEndpoints
     public static void MapChatEndpoints(this IEndpointRouteBuilder app)
     {
         var api = app.MapGroup(ApiRoutes.Chat.Base);
+        api.AsBffApiEndpoint();
 
         api.MapPost("/conversations", async (
             StartConversationRequest request,

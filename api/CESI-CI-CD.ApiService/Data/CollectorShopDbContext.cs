@@ -16,7 +16,11 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // La table Users est possédée par CESI-CI-CD.IdentityService (migrations, schéma) —
+        // cette API ne fait que la lire/joindre (Listing.Seller, Favorite.User, etc.), jamais
+        // n'en modifie le schéma.
         modelBuilder.Entity<User>()
+            .ToTable("Users", t => t.ExcludeFromMigrations())
             .HasIndex(u => u.Email)
             .IsUnique();
 

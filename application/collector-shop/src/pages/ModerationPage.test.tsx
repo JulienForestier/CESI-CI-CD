@@ -33,7 +33,8 @@ describe('ModerationPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'admin-1', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
+      isLoading: false,
+      user: { userId: 'admin-1', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -74,7 +75,7 @@ describe('ModerationPage', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: 'Valider' }))
 
-    await waitFor(() => expect(moderationApi.approveListing).toHaveBeenCalledWith('jwt-token', 'listing-1'))
+    await waitFor(() => expect(moderationApi.approveListing).toHaveBeenCalledWith('listing-1'))
   })
 
   it('rejects a listing with a reason when clicking Rejeter then confirming', async () => {
@@ -88,7 +89,7 @@ describe('ModerationPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Confirmer le rejet' }))
 
     await waitFor(() =>
-      expect(moderationApi.rejectListing).toHaveBeenCalledWith('jwt-token', 'listing-1', 'Titre non conforme'),
+      expect(moderationApi.rejectListing).toHaveBeenCalledWith('listing-1', 'Titre non conforme'),
     )
   })
 

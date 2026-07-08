@@ -30,17 +30,16 @@ export function useMyListings() {
 
   return useQuery({
     queryKey: ['listings', 'mine', user?.userId],
-    queryFn: () => catalogApi.getMyListings(user!.token),
+    queryFn: () => catalogApi.getMyListings(),
     enabled: Boolean(user),
   })
 }
 
 export function useCreateListing() {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (input: CreateListingInput) => catalogApi.createListing(user!.token, input),
+    mutationFn: (input: CreateListingInput) => catalogApi.createListing(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['listings'] })
     },

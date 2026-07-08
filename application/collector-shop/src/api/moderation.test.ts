@@ -5,33 +5,31 @@ import * as client from './client'
 vi.mock('./client')
 
 describe('moderation api', () => {
-  it('getPendingListings calls /admin/listings/pending with the bearer token', async () => {
+  it('getPendingListings calls /admin/listings/pending', async () => {
     vi.mocked(client.apiFetch).mockResolvedValue([])
 
-    await getPendingListings('jwt-token')
+    await getPendingListings()
 
-    expect(client.apiFetch).toHaveBeenCalledWith('/admin/listings/pending', { token: 'jwt-token' })
+    expect(client.apiFetch).toHaveBeenCalledWith('/admin/listings/pending')
   })
 
   it('approveListing POSTs /admin/listings/:id/approve', async () => {
     vi.mocked(client.apiFetch).mockResolvedValue({})
 
-    await approveListing('jwt-token', 'listing-1')
+    await approveListing('listing-1')
 
     expect(client.apiFetch).toHaveBeenCalledWith('/admin/listings/listing-1/approve', {
       method: 'POST',
-      token: 'jwt-token',
     })
   })
 
   it('rejectListing POSTs /admin/listings/:id/reject with the reason', async () => {
     vi.mocked(client.apiFetch).mockResolvedValue({})
 
-    await rejectListing('jwt-token', 'listing-1', 'Titre non conforme')
+    await rejectListing('listing-1', 'Titre non conforme')
 
     expect(client.apiFetch).toHaveBeenCalledWith('/admin/listings/listing-1/reject', {
       method: 'POST',
-      token: 'jwt-token',
       body: { reason: 'Titre non conforme' },
     })
   })

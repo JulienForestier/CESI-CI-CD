@@ -25,7 +25,8 @@ describe('InterestsPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -62,7 +63,7 @@ describe('InterestsPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Sneakers/ }))
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer mes préférences' }))
 
-    await waitFor(() => expect(interestsApi.updateInterests).toHaveBeenCalledWith('jwt-token', ['cat-2']))
+    await waitFor(() => expect(interestsApi.updateInterests).toHaveBeenCalledWith(['cat-2']))
     expect(await screen.findByText('Vos préférences ont été enregistrées.')).toBeInTheDocument()
   })
 

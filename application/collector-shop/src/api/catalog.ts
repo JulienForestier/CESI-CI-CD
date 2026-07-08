@@ -22,8 +22,8 @@ export function getListing(id: string) {
   return apiFetch<Listing>(`/listings/${id}`)
 }
 
-export function getMyListings(token: string) {
-  return apiFetch<Listing[]>('/listings/mine', { token })
+export function getMyListings() {
+  return apiFetch<Listing[]>('/listings/mine')
 }
 
 export interface CreateListingInput {
@@ -33,6 +33,6 @@ export interface CreateListingInput {
   categoryId: string
 }
 
-export function createListing(token: string, input: CreateListingInput) {
-  return apiFetch<Listing>('/listings', { method: 'POST', body: input, token })
+export function createListing(input: CreateListingInput) {
+  return apiFetch<Listing>('/listings', { method: 'POST', body: input })
 }

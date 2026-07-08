@@ -20,6 +20,7 @@ describe('Layout', () => {
     vi.mocked(chatApi.getConversations).mockResolvedValue([])
     vi.mocked(notificationsApi.getNotifications).mockResolvedValue([])
     vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isLoading: false,
       user: null,
       login: vi.fn(),
       register: vi.fn(),

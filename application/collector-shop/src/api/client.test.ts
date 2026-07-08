@@ -23,14 +23,15 @@ describe('apiFetch', () => {
     )
   })
 
-  it('sends the Authorization header when a token is provided', async () => {
+  it('sends credentials and the CSRF header required by Duende.BFF', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
 
-    await apiFetch('/secure', { token: 'abc123' })
+    await apiFetch('/secure')
 
     const [, init] = fetchMock.mock.calls[0]
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer abc123')
+    expect(init.credentials).toBe('include')
+    expect((init.headers as Record<string, string>)['X-CSRF']).toBe('1')
   })
 
   it('returns undefined for a 204 response', async () => {

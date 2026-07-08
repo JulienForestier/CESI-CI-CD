@@ -9,7 +9,7 @@ export function useConversations() {
 
   return useQuery({
     queryKey: ['conversations', user?.userId],
-    queryFn: () => chatApi.getConversations(user!.token),
+    queryFn: () => chatApi.getConversations(),
     enabled: Boolean(user),
     refetchInterval: POLL_INTERVAL_MS,
   })
@@ -20,17 +20,15 @@ export function useMessages(conversationId: string | undefined) {
 
   return useQuery({
     queryKey: ['conversations', conversationId, 'messages'],
-    queryFn: () => chatApi.getMessages(user!.token, conversationId!),
+    queryFn: () => chatApi.getMessages(conversationId!),
     enabled: Boolean(user) && Boolean(conversationId),
     refetchInterval: POLL_INTERVAL_MS,
   })
 }
 
 export function useStartConversation() {
-  const { user } = useAuth()
-
   return useMutation({
-    mutationFn: (listingId: string) => chatApi.startConversation(user!.token, listingId),
+    mutationFn: (listingId: string) => chatApi.startConversation(listingId),
   })
 }
 
@@ -39,7 +37,7 @@ export function useSendMessage(conversationId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (body: string) => chatApi.sendMessage(user!.token, conversationId, body),
+    mutationFn: (body: string) => chatApi.sendMessage(conversationId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations', conversationId, 'messages'] })
       queryClient.invalidateQueries({ queryKey: ['conversations', user?.userId] })
