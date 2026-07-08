@@ -31,6 +31,10 @@ builder.Services.AddIdentityServer(options =>
     options.LicenseKey = builder.Configuration["Duende:IdentityServer:LicenseKey"];
     options.UserInteraction.LoginUrl = "/login";
     options.UserInteraction.LoginReturnUrlParameter = "returnUrl";
+    // Par défaut Duende redirige vers /Account/Logout (page Razor du quickstart, qu'on n'a pas) —
+    // sans cette ligne, /connect/endsession redirige vers une URL non servie par l'ingress
+    // (seul /account, en minuscules, y est routé) et retombe en 404 sur le catch-all du SPA.
+    options.UserInteraction.LogoutUrl = IdentityRoutes.Logout;
 
     // Duende active par défaut l'Automatic Key Management, qui tente d'écrire des clés générées
     // sous ./keys — inutile ici puisqu'on fournit déjà un certificat de signature explicite

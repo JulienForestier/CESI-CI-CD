@@ -87,6 +87,22 @@ public static class AuthEndpoints
 
             return await SignInAndResumeAsync(httpContext, interaction, user, request.ReturnUrl);
         });
+
+        // Cible de UserInteractionOptions.LogoutUrl (voir Program.cs) : /connect/endsession y
+        // redirige (GET, logoutId en query) après avoir validé id_token_hint/post_logout_redirect_uri.
+        // Pas d'écran de confirmation ici — le clic sur "Se déconnecter" dans l'app est déjà l'action
+        // délibérée de l'utilisateur (pattern BFF), donc on signe out et on reprend immédiatement.
+        group.MapGet("/logout", async (
+            string? logoutId,
+            HttpContext httpContext,
+            IIdentityServerInteractionService interaction,
+            CancellationToken ct) =>
+        {
+            await httpContext.SignOutAsync();
+
+            var logoutContext = await interaction.GetLogoutContextAsync(logoutId, ct);
+            return Results.Redirect(logoutContext.PostLogoutRedirectUri ?? "/");
+        });
     }
 
     private static async Task<IResult> SignInAndResumeAsync(
