@@ -5,7 +5,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 # Le build .NET solution-wide (dotnet build CESI-CI-CD.sln) est déjà couvert par le job "Build"
 # de ci-api.yml — pas dupliqué ici. Ce workflow couvre ce qui est propre à ce service : ses
@@ -103,6 +102,9 @@ jobs:
     name: Container Scan
     needs: [lint, test]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

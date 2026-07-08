@@ -13,9 +13,9 @@ public class IdentityDbContextFactory : IDesignTimeDbContextFactory<IdentityDbCo
     public IdentityDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<IdentityDbContext>();
-        // NOSONAR (csharpsquid:S2068) : identifiants de dev locaux non sensibles, utilisés
-        // uniquement par l'outillage `dotnet ef` en design-time — jamais à l'exécution.
-        optionsBuilder.UseNpgsql("Host=localhost;Database=collectorshop;Username=postgres;Password=postgres");
+        // Identifiants de dev locaux non sensibles, utilisés uniquement par l'outillage
+        // `dotnet ef` en design-time — jamais à l'exécution.
+        optionsBuilder.UseNpgsql("Host=localhost;Database=collectorshop;Username=postgres;Password=postgres"); // NOSONAR
         return new IdentityDbContext(optionsBuilder.Options);
     }
 }

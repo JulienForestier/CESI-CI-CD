@@ -13,5 +13,8 @@ function isSafeRelativeUrl(url: string): boolean {
 // chemin relatif pour éviter tout open-redirect, même si le serveur valide déjà returnUrl
 // via IIdentityServerInteractionService.IsValidReturnUrl.
 export function navigateToReturnUrl(returnUrl: string): void {
-  window.location.href = isSafeRelativeUrl(returnUrl) ? returnUrl : '/'
+  // NOSONAR (tssecurity:S6105) : le scanner ne reconnaît pas isSafeRelativeUrl() comme un
+  // sanitizer — la valeur assignée ici est déjà validée ci-dessus (voir returnUrl.test.ts pour
+  // la preuve que les URL absolues/protocol-relative retombent sur "/").
+  window.location.href = isSafeRelativeUrl(returnUrl) ? returnUrl : '/' // NOSONAR
 }
