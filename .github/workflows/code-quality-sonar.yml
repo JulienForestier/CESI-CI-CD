@@ -25,7 +25,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: application/collector-shop
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run frontend tests with coverage
         working-directory: application/collector-shop
@@ -62,7 +62,7 @@ jobs:
           /k:"JulienForestier_CESI-CI-CD"
           /o:"julienforestier"
           /d:sonar.host.url="https://sonarcloud.io"
-          /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          /d:sonar.token="$SONAR_TOKEN"
           /d:sonar.sources="application/collector-shop/src,api/CESI-CI-CD,api/CESI-CI-CD.ApiService"
           /d:sonar.tests="application/collector-shop/src,api/CESI-CI-CD.ApiService.Tests"
           /d:sonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,api/CESI-CI-CD.ApiService.Tests/**/*.cs"
@@ -82,10 +82,10 @@ jobs:
       - name: End SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+        run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
       - name: SonarCloud Quality Gate Check
-        uses: SonarSource/sonarqube-quality-gate-action@v1
+        uses: SonarSource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
