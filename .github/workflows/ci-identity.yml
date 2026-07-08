@@ -7,12 +7,101 @@ permissions:
   contents: read
   security-events: write
 
-# build/test/dependency-audit du solution .NET (qui inclut CESI-CI-CD.IdentityService) sont déjà
-# couverts par ci-api.yml (dotnet build/test opèrent sur CESI-CI-CD.sln en entier) — ce workflow
-# se concentre sur ce qui est propre à ce service : le scan de son image de conteneur.
+# Le build .NET solution-wide (dotnet build CESI-CI-CD.sln) est déjà couvert par le job "Build"
+# de ci-api.yml — pas dupliqué ici. Ce workflow couvre ce qui est propre à ce service : ses
+# propres tests .NET, le lint/tests/audit de son UI React dédiée, et le scan de son image.
 jobs:
+  dotnet-tests:
+    name: .NET Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        working-directory: api
+        run: dotnet restore CESI-CI-CD.sln
+
+      - name: Run tests
+        working-directory: api
+        run: >
+          dotnet test CESI-CI-CD.IdentityService.Tests --no-restore --configuration Release
+          --collect:"XPlat Code Coverage" --settings CESI-CI-CD.IdentityService.Tests/coverlet.runsettings
+
+  lint:
+    name: Lint (identity-ui)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: application/identity-ui/package-lock.json
+
+      - name: Install dependencies
+        working-directory: application/identity-ui
+        run: npm ci --ignore-scripts
+
+      - name: Run ESLint
+        working-directory: application/identity-ui
+        run: npm run lint
+
+  test:
+    name: Unit Tests (identity-ui)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: application/identity-ui/package-lock.json
+
+      - name: Install dependencies
+        working-directory: application/identity-ui
+        run: npm ci --ignore-scripts
+
+      - name: Run tests
+        working-directory: application/identity-ui
+        run: npm test
+
+  dependency-audit:
+    name: Dependency Audit (identity-ui)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: application/identity-ui/package-lock.json
+
+      - name: Install dependencies
+        working-directory: application/identity-ui
+        run: npm ci --ignore-scripts
+
+      - name: npm audit
+        working-directory: application/identity-ui
+        run: npm audit --audit-level=high
+
   container-scan:
     name: Container Scan
+    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -28,7 +117,7 @@ jobs:
       - name: Build identity-ui
         working-directory: application/identity-ui
         run: |
-          npm ci
+          npm ci --ignore-scripts
           npm run build
 
       - name: Copy identity-ui build into IdentityService wwwroot

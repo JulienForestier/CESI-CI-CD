@@ -15,14 +15,14 @@ namespace CESI_CI_CD.IdentityService;
 /// </summary>
 public class CustomProfileService(IdentityDbContext db) : IProfileService
 {
-    public async Task GetProfileDataAsync(ProfileDataRequestContext context, CancellationToken cancellationToken = default)
+    public async Task GetProfileDataAsync(ProfileDataRequestContext context, CancellationToken ct)
     {
         if (!Guid.TryParse(context.Subject.GetSubjectId(), out var userId))
         {
             return;
         }
 
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user is null)
         {
             return;
@@ -42,9 +42,9 @@ public class CustomProfileService(IdentityDbContext db) : IProfileService
         context.AddRequestedClaims(claims);
     }
 
-    public async Task IsActiveAsync(IsActiveContext context, CancellationToken cancellationToken = default)
+    public async Task IsActiveAsync(IsActiveContext context, CancellationToken ct)
     {
         var userId = Guid.Parse(context.Subject.GetSubjectId());
-        context.IsActive = await db.Users.AnyAsync(u => u.Id == userId, cancellationToken);
+        context.IsActive = await db.Users.AnyAsync(u => u.Id == userId, ct);
     }
 }

@@ -15,7 +15,8 @@ export function getListings(filter: ListingsFilter = {}) {
   if (filter.categoryId) params.set('categoryId', filter.categoryId)
   if (filter.search) params.set('search', filter.search)
   const query = params.toString()
-  return apiFetch<Listing[]>(`/listings${query ? `?${query}` : ''}`)
+  const suffix = query ? `?${query}` : ''
+  return apiFetch<Listing[]>(`/listings${suffix}`)
 }
 
 export function getListing(id: string) {

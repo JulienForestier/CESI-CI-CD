@@ -31,6 +31,14 @@ jobs:
         working-directory: application/collector-shop
         run: npm test
 
+      - name: Install identity-ui dependencies
+        working-directory: application/identity-ui
+        run: npm ci --ignore-scripts
+
+      - name: Run identity-ui tests with coverage
+        working-directory: application/identity-ui
+        run: npm test
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -63,13 +71,13 @@ jobs:
           /o:"julienforestier"
           /d:sonar.host.url="https://sonarcloud.io"
           /d:sonar.token="$SONAR_TOKEN"
-          /d:sonar.sources="application/collector-shop/src,api/CESI-CI-CD,api/CESI-CI-CD.ApiService"
-          /d:sonar.tests="application/collector-shop/src,api/CESI-CI-CD.ApiService.Tests"
-          /d:sonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,api/CESI-CI-CD.ApiService.Tests/**/*.cs"
+          /d:sonar.sources="application/collector-shop/src,application/identity-ui/src,api/CESI-CI-CD,api/CESI-CI-CD.ApiService,api/CESI-CI-CD.IdentityService"
+          /d:sonar.tests="application/collector-shop/src,application/identity-ui/src,api/CESI-CI-CD.ApiService.Tests,api/CESI-CI-CD.IdentityService.Tests"
+          /d:sonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,api/CESI-CI-CD.ApiService.Tests/**/*.cs,api/CESI-CI-CD.IdentityService.Tests/**/*.cs"
           /d:sonar.exclusions="**/node_modules/**,**/dist/**,**/bin/**,**/obj/**,**/coverage/**"
-          /d:sonar.coverage.exclusions="**/Migrations/**,api/CESI-CI-CD/**"
-          /d:sonar.javascript.lcov.reportPaths="application/collector-shop/coverage/lcov.info"
-          /d:sonar.cs.opencover.reportsPaths="api/CESI-CI-CD.ApiService.Tests/TestResults/**/coverage.opencover.xml"
+          /d:sonar.coverage.exclusions="**/Migrations/**,api/CESI-CI-CD/**,api/CESI-CI-CD.IdentityService/Data/IdentityDbContextFactory.cs"
+          /d:sonar.javascript.lcov.reportPaths="application/collector-shop/coverage/lcov.info,application/identity-ui/coverage/lcov.info"
+          /d:sonar.cs.opencover.reportsPaths="api/CESI-CI-CD.ApiService.Tests/TestResults/**/coverage.opencover.xml,api/CESI-CI-CD.IdentityService.Tests/TestResults/**/coverage.opencover.xml"
 
       - name: Build API
         run: dotnet build api/CESI-CI-CD.sln --configuration Release --no-restore
@@ -78,6 +86,11 @@ jobs:
         run: >
           dotnet test api/CESI-CI-CD.ApiService.Tests --configuration Release --no-build
           --collect:"XPlat Code Coverage" --settings api/CESI-CI-CD.ApiService.Tests/coverlet.runsettings
+
+      - name: Run Identity tests with coverage
+        run: >
+          dotnet test api/CESI-CI-CD.IdentityService.Tests --configuration Release --no-build
+          --collect:"XPlat Code Coverage" --settings api/CESI-CI-CD.IdentityService.Tests/coverlet.runsettings
 
       - name: End SonarCloud analysis
         env:

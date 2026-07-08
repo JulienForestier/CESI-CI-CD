@@ -38,7 +38,7 @@ function toAuthUser(claims: BffClaim[]): AuthUser | null {
   }
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [logoutUrl, setLogoutUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)

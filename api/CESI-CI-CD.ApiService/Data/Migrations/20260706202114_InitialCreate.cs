@@ -10,6 +10,8 @@ namespace CESICICD.ApiService.Data.Migrations
     /// <inheritdoc />
     public partial class InitialCreate : Migration
     {
+        private static readonly string[] CategorySeedColumns = ["Id", "Name"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -72,7 +74,7 @@ namespace CESICICD.ApiService.Data.Migrations
 
             migrationBuilder.InsertData(
                 table: "Categories",
-                columns: new[] { "Id", "Name" },
+                columns: CategorySeedColumns,
                 values: new object[,]
                 {
                     { new Guid("11111111-1111-1111-1111-111111111111"), "Figurines" },

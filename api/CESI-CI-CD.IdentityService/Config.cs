@@ -9,12 +9,15 @@ namespace CESI_CI_CD.IdentityService;
 /// </summary>
 public static class Config
 {
+    private static readonly string[] ProfileClaims = ["name"];
+    private static readonly string[] RoleClaims = ["role"];
+
     public static IEnumerable<IdentityResource> IdentityResources =>
     [
         new IdentityResources.OpenId(),
         new IdentityResources.Email(),
-        new IdentityResource("profile", "Profil utilisateur", new[] { "name" }),
-        new IdentityResource("roles", "Rôles utilisateur", new[] { "role" }),
+        new IdentityResource("profile", "Profil utilisateur", ProfileClaims),
+        new IdentityResource("roles", "Rôles utilisateur", RoleClaims),
     ];
 
     public static IEnumerable<Client> GetClients(string bffOrigin, string bffClientSecret) =>

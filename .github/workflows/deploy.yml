@@ -124,7 +124,7 @@ jobs:
       - name: Build identity-ui
         working-directory: application/identity-ui
         run: |
-          npm ci
+          npm ci --ignore-scripts
           npm run build
 
       - name: Copy identity-ui build into IdentityService wwwroot

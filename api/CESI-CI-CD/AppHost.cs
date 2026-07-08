@@ -25,4 +25,4 @@ identityService
 builder.AddViteApp("app", "../application/collector-shop")
     .WithReference(apiService);
 
-builder.Build().Run();
+await builder.Build().RunAsync();
