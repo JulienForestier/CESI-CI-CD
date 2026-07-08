@@ -11,6 +11,10 @@ on:
         required: false
         type: string
         default: skipped
+      identity_result:
+        required: false
+        type: string
+        default: skipped
       security_result:
         required: false
         type: string
@@ -55,6 +59,7 @@ jobs:
 
           FRONT_STATUS="$(format_status "${{ inputs.front_result }}")"
           API_STATUS="$(format_status "${{ inputs.api_result }}")"
+          IDENTITY_STATUS="$(format_status "${{ inputs.identity_result }}")"
           SECURITY_STATUS="$(format_status "${{ inputs.security_result }}")"
           CODE_QUALITY_STATUS="$(format_status "${{ inputs.code_quality_result }}")"
 
@@ -65,6 +70,7 @@ jobs:
             echo "|-----------|--------|"
             echo "| Frontend | ${FRONT_STATUS} |"
             echo "| API | ${API_STATUS} |"
+            echo "| Identity | ${IDENTITY_STATUS} |"
             echo "| Security | ${SECURITY_STATUS} |"
             echo "| Code Quality (SonarCloud) | ${CODE_QUALITY_STATUS} |"
             echo ""
@@ -78,6 +84,7 @@ jobs:
           PR_NUMBER: ${{ inputs.pull_request_number }}
           FRONT_RESULT: ${{ inputs.front_result }}
           API_RESULT: ${{ inputs.api_result }}
+          IDENTITY_RESULT: ${{ inputs.identity_result }}
           SECURITY_RESULT: ${{ inputs.security_result }}
           CODE_QUALITY_RESULT: ${{ inputs.code_quality_result }}
         with:
@@ -106,6 +113,7 @@ jobs:
                 '',
                 `- Frontend: ${formatStatus(process.env.FRONT_RESULT)}`,
                 `- API: ${formatStatus(process.env.API_RESULT)}`,
+                `- Identity: ${formatStatus(process.env.IDENTITY_RESULT)}`,
                 `- Security: ${formatStatus(process.env.SECURITY_RESULT)}`,
                 `- Code Quality (SonarCloud): ${formatStatus(process.env.CODE_QUALITY_RESULT)}`
               ].join('\n')
