@@ -1,33 +1,27 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using CESI_CI_CD.ApiService.Contracts;
+using CESI_CI_CD.ApiService.Endpoints;
 
 namespace CESI_CI_CD.ApiService.Tests.Endpoints;
 
 public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 {
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     public UserEndpointsTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
-    private async Task<AuthResponse> RegisterUserAsync()
-    {
-        var email = $"{Guid.NewGuid()}@collector.shop";
-        var response = await _client.PostAsJsonAsync(
-            "/api/auth/register",
-            new RegisterRequest(email, "P@ssword123", "Utilisateur Test"));
-
-        return (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
-    }
+    private Task<TestUser> RegisterUserAsync() => TestAuthHelper.CreateUserAsync(_factory, displayName: "Utilisateur Test");
 
     [Fact]
     public async Task GetMe_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.GetAsync("/api/users/me");
+        var response = await _client.GetAsync(ApiRoutes.Users.Me);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -35,7 +29,7 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task PatchMe_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.PatchAsJsonAsync("/api/users/me", new UpdateProfileRequest("Nouveau pseudo"));
+        var response = await _client.PatchAsJsonAsync(ApiRoutes.Users.Me, new UpdateProfileRequest("Nouveau pseudo"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -44,10 +38,10 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task GetMe_ReturnsTheCurrentUsersProfile()
     {
         var user = await RegisterUserAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
+        TestAuthHelper.AuthenticateAs(_client, user);
 
-        var profile = await _client.GetFromJsonAsync<UserProfileResponse>("/api/users/me");
-        _client.DefaultRequestHeaders.Authorization = null;
+        var profile = await _client.GetFromJsonAsync<UserProfileResponse>(ApiRoutes.Users.Me);
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(user.UserId, profile!.Id);
         Assert.Equal(user.Email, profile.Email);
@@ -59,12 +53,12 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task PatchMe_UpdatesDisplayName()
     {
         var user = await RegisterUserAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
+        TestAuthHelper.AuthenticateAs(_client, user);
 
-        var response = await _client.PatchAsJsonAsync("/api/users/me", new UpdateProfileRequest("Nouveau pseudo"));
+        var response = await _client.PatchAsJsonAsync(ApiRoutes.Users.Me, new UpdateProfileRequest("Nouveau pseudo"));
         var updated = await response.Content.ReadFromJsonAsync<UserProfileResponse>();
-        var profile = await _client.GetFromJsonAsync<UserProfileResponse>("/api/users/me");
-        _client.DefaultRequestHeaders.Authorization = null;
+        var profile = await _client.GetFromJsonAsync<UserProfileResponse>(ApiRoutes.Users.Me);
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("Nouveau pseudo", updated!.DisplayName);
@@ -77,10 +71,10 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task PatchMe_ReturnsBadRequest_WhenDisplayNameBlank(string displayName)
     {
         var user = await RegisterUserAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
+        TestAuthHelper.AuthenticateAs(_client, user);
 
-        var response = await _client.PatchAsJsonAsync("/api/users/me", new UpdateProfileRequest(displayName));
-        _client.DefaultRequestHeaders.Authorization = null;
+        var response = await _client.PatchAsJsonAsync(ApiRoutes.Users.Me, new UpdateProfileRequest(displayName));
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }

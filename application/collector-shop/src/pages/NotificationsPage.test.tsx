@@ -37,7 +37,8 @@ describe('NotificationsPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -89,6 +90,6 @@ describe('NotificationsPage', () => {
     expect(button).toBeEnabled()
     await userEvent.click(button)
 
-    expect(notificationsApi.markAllNotificationsRead).toHaveBeenCalledWith('jwt-token')
+    expect(notificationsApi.markAllNotificationsRead).toHaveBeenCalledWith()
   })
 })

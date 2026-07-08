@@ -11,18 +11,18 @@ export class ApiError extends Error {
 interface RequestOptions {
   method?: string
   body?: unknown
-  token?: string | null
 }
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (options.token) {
-    headers.Authorization = `Bearer ${options.token}`
-  }
-
   const response = await fetch(`/api${path}`, {
     method: options.method ?? 'GET',
-    headers,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      // Requis par Duende.BFF (.AsBffApiEndpoint()) pour distinguer un appel du SPA d'une
+      // requête cross-site — sans ce header, les endpoints protégés répondent 401.
+      'X-CSRF': '1',
+    },
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   })
 

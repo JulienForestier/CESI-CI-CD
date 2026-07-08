@@ -1,4 +1,5 @@
 using CESI_CI_CD.ApiService.Data;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,16 @@ namespace CESI_CI_CD.ApiService.Tests;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     public readonly string DatabaseName = Guid.NewGuid().ToString();
+
+    // Duende.BFF exige un header statique "X-CSRF: 1" sur toute requête vers un endpoint
+    // .AsBffApiEndpoint(), authentifié ou non (protection anti-CSRF indépendante de l'auth) —
+    // voir BffAntiForgeryMiddleware. Le vrai frontend l'envoie déjà (api/client.ts) ; ici on
+    // l'ajoute par défaut sur chaque HttpClient de test pour ne pas le répéter partout.
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        client.DefaultRequestHeaders.Add("X-CSRF", "1");
+    }
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
@@ -32,7 +43,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:collectorshop"] = "Host=localhost;Database=unused;Username=unused;Password=unused",
-                ["Jwt:Key"] = "test-signing-key-not-used-in-production-0000000000",
+                ["Cors:AllowedOrigins:0"] = "http://localhost:5173",
+                ["IdentityService:Authority"] = "https://localhost:5100",
+                ["Bff:Origin"] = "https://localhost:5050",
             });
         });
 
@@ -50,6 +63,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<CollectorShopDbContext>(options =>
                 options.UseInMemoryDatabase(DatabaseName));
+
+            // Remplace le scheme cookie/Duende.BFF réel (qui suppose un IdentityService
+            // joignable) par un scheme de test piloté par en-tête — voir TestAuthHandler.
+            services.AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
         });
     }
 }

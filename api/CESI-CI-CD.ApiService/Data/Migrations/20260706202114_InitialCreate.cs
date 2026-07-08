@@ -10,6 +10,8 @@ namespace CESICICD.ApiService.Data.Migrations
     /// <inheritdoc />
     public partial class InitialCreate : Migration
     {
+        private static readonly string[] CategorySeedColumns = ["Id", "Name"];
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -25,20 +27,20 @@ namespace CESICICD.ApiService.Data.Migrations
                     table.PrimaryKey("PK_Categories", x => x.Id);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "Users",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Email = table.Column<string>(type: "text", nullable: false),
-                    PasswordHash = table.Column<string>(type: "text", nullable: false),
-                    DisplayName = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Users", x => x.Id);
-                });
+            // SQL idempotent : la table "Users" est désormais possédée par les migrations de
+            // CESI-CI-CD.IdentityService (voir sa migration InitialCreate), qui peut s'exécuter
+            // avant ou après celle-ci selon l'ordre de démarrage des deux services. CreateTable
+            // générerait un "already exists" si l'autre service est passé en premier.
+            migrationBuilder.Sql("""
+                CREATE TABLE IF NOT EXISTS "Users" (
+                    "Id" uuid NOT NULL,
+                    "Email" text NOT NULL,
+                    "PasswordHash" text NOT NULL,
+                    "DisplayName" text NOT NULL,
+                    "CreatedAt" timestamp with time zone NOT NULL,
+                    CONSTRAINT "PK_Users" PRIMARY KEY ("Id")
+                )
+                """);
 
             migrationBuilder.CreateTable(
                 name: "Listings",
@@ -72,7 +74,7 @@ namespace CESICICD.ApiService.Data.Migrations
 
             migrationBuilder.InsertData(
                 table: "Categories",
-                columns: new[] { "Id", "Name" },
+                columns: CategorySeedColumns,
                 values: new object[,]
                 {
                     { new Guid("11111111-1111-1111-1111-111111111111"), "Figurines" },
@@ -90,11 +92,9 @@ namespace CESICICD.ApiService.Data.Migrations
                 table: "Listings",
                 column: "SellerId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Email",
-                table: "Users",
-                column: "Email",
-                unique: true);
+            migrationBuilder.Sql("""
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users" ("Email")
+                """);
         }
 
         /// <inheritdoc />
@@ -106,8 +106,9 @@ namespace CESICICD.ApiService.Data.Migrations
             migrationBuilder.DropTable(
                 name: "Categories");
 
-            migrationBuilder.DropTable(
-                name: "Users");
+            // "Users" n'est pas supprimée ici : la table est partagée avec
+            // CESI-CI-CD.IdentityService, qui en reste propriétaire même après un rollback
+            // de cette migration côté ApiService.
         }
     }
 }

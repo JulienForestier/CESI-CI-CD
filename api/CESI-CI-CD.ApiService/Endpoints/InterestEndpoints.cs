@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
+using Duende.Bff;
 using CESI_CI_CD.ApiService.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,8 @@ public static class InterestEndpoints
 {
     public static void MapInterestEndpoints(this IEndpointRouteBuilder app)
     {
-        var api = app.MapGroup("/api/interests").RequireAuthorization();
+        var api = app.MapGroup(ApiRoutes.Interests.Base).RequireAuthorization();
+        api.AsBffApiEndpoint();
 
         api.MapGet("", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
         {

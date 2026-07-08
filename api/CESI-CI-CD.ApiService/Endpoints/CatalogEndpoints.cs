@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
+using Duende.Bff;
 using CESI_CI_CD.ApiService.Data.Entities;
 using CESI_CI_CD.ApiService.Services;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,8 @@ public static class CatalogEndpoints
 {
     public static void MapCatalogEndpoints(this IEndpointRouteBuilder app)
     {
-        var api = app.MapGroup("/api");
+        var api = app.MapGroup(ApiRoutes.Catalog.Base);
+        api.AsBffApiEndpoint();
 
         api.MapGet("/categories", async (CollectorShopDbContext db) =>
         {

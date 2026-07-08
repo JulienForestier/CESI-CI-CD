@@ -1,0 +1,159 @@
+name: CI - Identity
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Le build .NET solution-wide (dotnet build CESI-CI-CD.sln) est déjà couvert par le job "Build"
+# de ci-api.yml — pas dupliqué ici. Ce workflow couvre ce qui est propre à ce service : ses
+# propres tests .NET, le lint/tests/audit de son UI React dédiée, et le scan de son image.
+jobs:
+  dotnet-tests:
+    name: .NET Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        working-directory: api
+        run: dotnet restore CESI-CI-CD.sln
+
+      - name: Run tests
+        working-directory: api
+        run: >
+          dotnet test CESI-CI-CD.IdentityService.Tests --no-restore --configuration Release
+          --collect:"XPlat Code Coverage" --settings CESI-CI-CD.IdentityService.Tests/coverlet.runsettings
+
+  lint:
+    name: Lint (identity-ui)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: application/identity-ui/package-lock.json
+
+      - name: Install dependencies
+        working-directory: application/identity-ui
+        run: npm ci --ignore-scripts
+
+      - name: Run ESLint
+        working-directory: application/identity-ui
+        run: npm run lint
+
+  test:
+    name: Unit Tests (identity-ui)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: application/identity-ui/package-lock.json
+
+      - name: Install dependencies
+        working-directory: application/identity-ui
+        run: npm ci --ignore-scripts
+
+      - name: Run tests
+        working-directory: application/identity-ui
+        run: npm test
+
+  dependency-audit:
+    name: Dependency Audit (identity-ui)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: application/identity-ui/package-lock.json
+
+      - name: Install dependencies
+        working-directory: application/identity-ui
+        run: npm ci --ignore-scripts
+
+      - name: npm audit
+        working-directory: application/identity-ui
+        run: npm audit --audit-level=high
+
+  container-scan:
+    name: Container Scan
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: application/identity-ui/package-lock.json
+
+      - name: Build identity-ui
+        working-directory: application/identity-ui
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+
+      - name: Copy identity-ui build into IdentityService wwwroot
+        run: |
+          mkdir -p api/CESI-CI-CD.IdentityService/wwwroot
+          cp -r application/identity-ui/dist/. api/CESI-CI-CD.IdentityService/wwwroot/
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+        with:
+          context: ./api/CESI-CI-CD.IdentityService
+          file: ./api/CESI-CI-CD.IdentityService/Dockerfile
+          push: false
+          load: true
+          tags: collector-shop-identity:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: collector-shop-identity:scan
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-container-scan-identity

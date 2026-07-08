@@ -28,6 +28,7 @@ jobs:
     outputs:
       front-changed: ${{ steps.filter.outputs.front }}
       api-changed: ${{ steps.filter.outputs.api }}
+      identity-changed: ${{ steps.filter.outputs.identity }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,6 +53,16 @@ jobs:
               - '.github/workflows/code-quality-sast.yml'
               - '.github/workflows/ci-security.yml'
               - '.github/workflows/deploy.yml'
+            identity:
+              - 'api/CESI-CI-CD.IdentityService/**'
+              - '!api/CESI-CI-CD.IdentityService/**/bin/**'
+              - '!api/CESI-CI-CD.IdentityService/**/obj/**'
+              - 'api/CESI-CI-CD.IdentityService.Tests/**'
+              - '!api/CESI-CI-CD.IdentityService.Tests/**/bin/**'
+              - '!api/CESI-CI-CD.IdentityService.Tests/**/obj/**'
+              - 'application/identity-ui/**'
+              - '.github/workflows/ci-identity.yml'
+              - '.github/workflows/deploy.yml'
 
   front-pipeline:
     if: needs.detect-changes.outputs.front-changed == 'true'
@@ -63,6 +74,12 @@ jobs:
     if: needs.detect-changes.outputs.api-changed == 'true'
     needs: detect-changes
     uses: ./.github/workflows/ci-api.yml
+    secrets: inherit
+
+  identity-pipeline:
+    if: needs.detect-changes.outputs.identity-changed == 'true'
+    needs: detect-changes
+    uses: ./.github/workflows/ci-identity.yml
     secrets: inherit
 
   security-pipeline:
@@ -86,11 +103,12 @@ jobs:
 
   status:
     if: always()
-    needs: [front-pipeline, api-pipeline, security-pipeline, code-quality-pipeline]
+    needs: [front-pipeline, api-pipeline, identity-pipeline, security-pipeline, code-quality-pipeline]
     uses: ./.github/workflows/ci-status.yml
     with:
       front_result: ${{ needs.front-pipeline.result }}
       api_result: ${{ needs.api-pipeline.result }}
+      identity_result: ${{ needs.identity-pipeline.result }}
       security_result: ${{ needs.security-pipeline.result }}
       code_quality_result: ${{ needs.code-quality-pipeline.result }}
       should_comment: ${{ github.event_name == 'pull_request' }}

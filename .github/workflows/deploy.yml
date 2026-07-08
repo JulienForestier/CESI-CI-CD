@@ -30,6 +30,7 @@ jobs:
       target_env: ${{ steps.target.outputs.target_env }}
       front_image_tag: ${{ steps.front-tag.outputs.image_tag }}
       api_image_tag: ${{ steps.api-tag.outputs.image_tag }}
+      identity_image_tag: ${{ steps.identity-tag.outputs.image_tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -113,6 +114,39 @@ jobs:
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: application/identity-ui/package-lock.json
+
+      - name: Build identity-ui
+        working-directory: application/identity-ui
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+
+      - name: Copy identity-ui build into IdentityService wwwroot
+        run: |
+          mkdir -p api/CESI-CI-CD.IdentityService/wwwroot
+          cp -r application/identity-ui/dist/. api/CESI-CI-CD.IdentityService/wwwroot/
+
+      - name: Compute identity image tag
+        id: identity-tag
+        run: echo "image_tag=${{ env.REGISTRY }}/${{ env.OWNER }}/collector-shop-identity:${{ steps.suffix.outputs.suffix }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push identity image
+        id: identity-build
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+        with:
+          context: ./api/CESI-CI-CD.IdentityService
+          file: ./api/CESI-CI-CD.IdentityService/Dockerfile
+          push: true
+          tags: ${{ steps.identity-tag.outputs.image_tag }}
+          cache-from: type=gha,scope=identity
+          cache-to: type=gha,mode=max,scope=identity
+
       - name: Install cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
@@ -120,6 +154,7 @@ jobs:
         run: |
           cosign sign --yes "${{ steps.front-tag.outputs.image_tag }}@${{ steps.front-build.outputs.digest }}"
           cosign sign --yes "${{ steps.api-tag.outputs.image_tag }}@${{ steps.api-build.outputs.digest }}"
+          cosign sign --yes "${{ steps.identity-tag.outputs.image_tag }}@${{ steps.identity-build.outputs.digest }}"
 
   update-kubernetes:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository }}
@@ -151,10 +186,11 @@ jobs:
 
           kustomize edit set image \
             "ghcr.io/OWNER/REPO=${{ needs.build-and-push.outputs.front_image_tag }}" \
-            "ghcr.io/OWNER/API=${{ needs.build-and-push.outputs.api_image_tag }}"
+            "ghcr.io/OWNER/API=${{ needs.build-and-push.outputs.api_image_tag }}" \
+            "ghcr.io/OWNER/IDENTITY=${{ needs.build-and-push.outputs.identity_image_tag }}"
 
           git config user.email "action@github.com"
           git config user.name "github-actions"
           git add kustomization.yaml
-          git commit -m "Update images: front=${{ needs.build-and-push.outputs.front_image_tag }}, api=${{ needs.build-and-push.outputs.api_image_tag }}" || echo "No changes"
+          git commit -m "Update images: front=${{ needs.build-and-push.outputs.front_image_tag }}, api=${{ needs.build-and-push.outputs.api_image_tag }}, identity=${{ needs.build-and-push.outputs.identity_image_tag }}" || echo "No changes"
           git push

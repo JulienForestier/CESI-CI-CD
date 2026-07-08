@@ -1,9 +1,9 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CESI_CI_CD.ApiService.Contracts;
+using CESI_CI_CD.ApiService.Endpoints;
 
 namespace CESI_CI_CD.ApiService.Tests.Endpoints;
 
@@ -14,47 +14,41 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         Converters = { new JsonStringEnumConverter() },
     };
 
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     public ChatEndpointsTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
-    private async Task<AuthResponse> RegisterUserAsync()
-    {
-        var email = $"{Guid.NewGuid()}@collector.shop";
-        var response = await _client.PostAsJsonAsync(
-            "/api/auth/register",
-            new RegisterRequest(email, "P@ssword123", "Utilisateur Test"));
-
-        return (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
-    }
+    private Task<TestUser> RegisterUserAsync() => TestAuthHelper.CreateUserAsync(_factory, displayName: "Utilisateur Test");
 
     private async Task<Guid> GetAnyCategoryIdAsync()
     {
-        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>("/api/categories");
+        var categories = await _client.GetFromJsonAsync<List<CategoryResponse>>(ApiRoutes.Catalog.Categories);
         return categories![0].Id;
     }
 
-    private async Task<Guid> CreatePublishedListingAsync(string sellerToken)
+    private async Task<Guid> CreatePublishedListingAsync(TestUser seller)
     {
         var categoryId = await GetAnyCategoryIdAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sellerToken);
+        TestAuthHelper.AuthenticateAs(_client, seller);
         var response = await _client.PostAsJsonAsync(
-            "/api/listings",
+            ApiRoutes.Catalog.Listings,
             new CreateListingRequest($"Annonce {Guid.NewGuid():N}", "Description valide", 25, categoryId));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         var body = await response.Content.ReadFromJsonAsync<ListingResponse>(JsonOptions);
         return body!.Id;
     }
 
-    private async Task<Guid> StartConversationAsync(string buyerToken, Guid listingId)
+    private async Task<Guid> StartConversationAsync(TestUser buyer, Guid listingId)
     {
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
-        var response = await _client.PostAsJsonAsync("/api/conversations", new StartConversationRequest(listingId));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, buyer);
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Conversations, new StartConversationRequest(listingId));
+        TestAuthHelper.ClearAuth(_client);
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         return body.GetProperty("id").GetGuid();
@@ -63,7 +57,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task StartConversation_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.PostAsJsonAsync("/api/conversations", new StartConversationRequest(Guid.NewGuid()));
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Conversations, new StartConversationRequest(Guid.NewGuid()));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -71,7 +65,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetConversations_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.GetAsync("/api/conversations");
+        var response = await _client.GetAsync(ApiRoutes.Chat.Conversations);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -79,7 +73,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetMessages_ReturnsUnauthorized_WithoutToken()
     {
-        var response = await _client.GetAsync($"/api/conversations/{Guid.NewGuid()}/messages");
+        var response = await _client.GetAsync(ApiRoutes.Chat.Messages(Guid.NewGuid()));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -88,7 +82,7 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task SendMessage_ReturnsUnauthorized_WithoutToken()
     {
         var response = await _client.PostAsJsonAsync(
-            $"/api/conversations/{Guid.NewGuid()}/messages",
+            ApiRoutes.Chat.Messages(Guid.NewGuid()),
             new SendMessageRequest("Bonjour"));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -98,10 +92,10 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task StartConversation_ReturnsNotFound_WhenListingUnknown()
     {
         var buyer = await RegisterUserAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
+        TestAuthHelper.AuthenticateAs(_client, buyer);
 
-        var response = await _client.PostAsJsonAsync("/api/conversations", new StartConversationRequest(Guid.NewGuid()));
-        _client.DefaultRequestHeaders.Authorization = null;
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Conversations, new StartConversationRequest(Guid.NewGuid()));
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -110,11 +104,11 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task StartConversation_ReturnsBadRequest_WhenStartingWithOwnListing()
     {
         var seller = await RegisterUserAsync();
-        var listingId = await CreatePublishedListingAsync(seller.Token);
+        var listingId = await CreatePublishedListingAsync(seller);
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
-        var response = await _client.PostAsJsonAsync("/api/conversations", new StartConversationRequest(listingId));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, seller);
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Conversations, new StartConversationRequest(listingId));
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -123,11 +117,11 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task StartConversation_IsIdempotent_ReturnsSameConversationId()
     {
         var seller = await RegisterUserAsync();
-        var listingId = await CreatePublishedListingAsync(seller.Token);
+        var listingId = await CreatePublishedListingAsync(seller);
         var buyer = await RegisterUserAsync();
 
-        var firstId = await StartConversationAsync(buyer.Token, listingId);
-        var secondId = await StartConversationAsync(buyer.Token, listingId);
+        var firstId = await StartConversationAsync(buyer, listingId);
+        var secondId = await StartConversationAsync(buyer, listingId);
 
         Assert.Equal(firstId, secondId);
     }
@@ -136,17 +130,17 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task GetConversations_ReturnsConversation_ForBothBuyerAndSeller()
     {
         var seller = await RegisterUserAsync();
-        var listingId = await CreatePublishedListingAsync(seller.Token);
+        var listingId = await CreatePublishedListingAsync(seller);
         var buyer = await RegisterUserAsync();
-        var conversationId = await StartConversationAsync(buyer.Token, listingId);
+        var conversationId = await StartConversationAsync(buyer, listingId);
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
-        var buyerConversations = await _client.GetFromJsonAsync<List<ConversationResponse>>("/api/conversations", JsonOptions);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, buyer);
+        var buyerConversations = await _client.GetFromJsonAsync<List<ConversationResponse>>(ApiRoutes.Chat.Conversations, JsonOptions);
+        TestAuthHelper.ClearAuth(_client);
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
-        var sellerConversations = await _client.GetFromJsonAsync<List<ConversationResponse>>("/api/conversations", JsonOptions);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, seller);
+        var sellerConversations = await _client.GetFromJsonAsync<List<ConversationResponse>>(ApiRoutes.Chat.Conversations, JsonOptions);
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Contains(buyerConversations!, c => c.Id == conversationId && c.CounterpartId == seller.UserId);
         Assert.Contains(sellerConversations!, c => c.Id == conversationId && c.CounterpartId == buyer.UserId);
@@ -158,13 +152,13 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task SendMessage_RejectsMessage_ContainingContactInfo(string body)
     {
         var seller = await RegisterUserAsync();
-        var listingId = await CreatePublishedListingAsync(seller.Token);
+        var listingId = await CreatePublishedListingAsync(seller);
         var buyer = await RegisterUserAsync();
-        var conversationId = await StartConversationAsync(buyer.Token, listingId);
+        var conversationId = await StartConversationAsync(buyer, listingId);
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
-        var response = await _client.PostAsJsonAsync($"/api/conversations/{conversationId}/messages", new SendMessageRequest(body));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, buyer);
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Messages(conversationId), new SendMessageRequest(body));
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -173,13 +167,13 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task SendMessage_RejectsEmptyMessage()
     {
         var seller = await RegisterUserAsync();
-        var listingId = await CreatePublishedListingAsync(seller.Token);
+        var listingId = await CreatePublishedListingAsync(seller);
         var buyer = await RegisterUserAsync();
-        var conversationId = await StartConversationAsync(buyer.Token, listingId);
+        var conversationId = await StartConversationAsync(buyer, listingId);
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
-        var response = await _client.PostAsJsonAsync($"/api/conversations/{conversationId}/messages", new SendMessageRequest("   "));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, buyer);
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Messages(conversationId), new SendMessageRequest("   "));
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -188,21 +182,21 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task SendMessage_AcceptsNormalMessage_AndAppearsInGetMessages()
     {
         var seller = await RegisterUserAsync();
-        var listingId = await CreatePublishedListingAsync(seller.Token);
+        var listingId = await CreatePublishedListingAsync(seller);
         var buyer = await RegisterUserAsync();
-        var conversationId = await StartConversationAsync(buyer.Token, listingId);
+        var conversationId = await StartConversationAsync(buyer, listingId);
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyer.Token);
+        TestAuthHelper.AuthenticateAs(_client, buyer);
         var sendResponse = await _client.PostAsJsonAsync(
-            $"/api/conversations/{conversationId}/messages",
+            ApiRoutes.Chat.Messages(conversationId),
             new SendMessageRequest("Bonjour, l'objet est-il toujours disponible ?"));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.Created, sendResponse.StatusCode);
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", seller.Token);
-        var messages = await _client.GetFromJsonAsync<List<MessageResponse>>($"/api/conversations/{conversationId}/messages", JsonOptions);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, seller);
+        var messages = await _client.GetFromJsonAsync<List<MessageResponse>>(ApiRoutes.Chat.Messages(conversationId), JsonOptions);
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Single(messages!, m => m.Body == "Bonjour, l'objet est-il toujours disponible ?" && m.SenderId == buyer.UserId);
     }
@@ -211,14 +205,14 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task GetMessages_ReturnsForbidden_ForNonParticipant()
     {
         var seller = await RegisterUserAsync();
-        var listingId = await CreatePublishedListingAsync(seller.Token);
+        var listingId = await CreatePublishedListingAsync(seller);
         var buyer = await RegisterUserAsync();
-        var conversationId = await StartConversationAsync(buyer.Token, listingId);
+        var conversationId = await StartConversationAsync(buyer, listingId);
         var stranger = await RegisterUserAsync();
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", stranger.Token);
-        var response = await _client.GetAsync($"/api/conversations/{conversationId}/messages");
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, stranger);
+        var response = await _client.GetAsync(ApiRoutes.Chat.Messages(conversationId));
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -227,14 +221,14 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task SendMessage_ReturnsForbidden_ForNonParticipant()
     {
         var seller = await RegisterUserAsync();
-        var listingId = await CreatePublishedListingAsync(seller.Token);
+        var listingId = await CreatePublishedListingAsync(seller);
         var buyer = await RegisterUserAsync();
-        var conversationId = await StartConversationAsync(buyer.Token, listingId);
+        var conversationId = await StartConversationAsync(buyer, listingId);
         var stranger = await RegisterUserAsync();
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", stranger.Token);
-        var response = await _client.PostAsJsonAsync($"/api/conversations/{conversationId}/messages", new SendMessageRequest("Salut"));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, stranger);
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Messages(conversationId), new SendMessageRequest("Salut"));
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -244,9 +238,9 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     {
         var user = await RegisterUserAsync();
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
-        var response = await _client.PostAsJsonAsync($"/api/conversations/{Guid.NewGuid()}/messages", new SendMessageRequest("Salut"));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, user);
+        var response = await _client.PostAsJsonAsync(ApiRoutes.Chat.Messages(Guid.NewGuid()), new SendMessageRequest("Salut"));
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -256,9 +250,9 @@ public class ChatEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     {
         var user = await RegisterUserAsync();
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", user.Token);
-        var response = await _client.GetAsync($"/api/conversations/{Guid.NewGuid()}/messages");
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.AuthenticateAs(_client, user);
+        var response = await _client.GetAsync(ApiRoutes.Chat.Messages(Guid.NewGuid()));
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

@@ -1,10 +1,8 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import * as authApi from '../api/auth'
-import type { AuthResponse } from '../types'
+import type { BffClaim } from '../api/auth'
 
 export interface AuthUser {
-  token: string
   userId: string
   email: string
   displayName: string
@@ -13,87 +11,88 @@ export interface AuthUser {
 
 interface AuthContextValue {
   user: AuthUser | null
-  login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, displayName: string) => Promise<void>
+  isLoading: boolean
+  login: () => void
+  register: () => void
   logout: () => void
   updateDisplayName: (displayName: string) => void
 }
 
-const STORAGE_KEY = 'collector-shop-auth'
-
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-function readStoredUser(): AuthUser | null {
-  const raw = localStorage.getItem(STORAGE_KEY)
-  if (!raw) return null
-  try {
-    return JSON.parse(raw) as AuthUser
-  } catch {
-    return null
-  }
+function findClaim(claims: BffClaim[], type: string): string | undefined {
+  return claims.find((c) => c.type === type)?.value
 }
 
-function toAuthUser(response: AuthResponse): AuthUser {
+function toAuthUser(claims: BffClaim[]): AuthUser | null {
+  const userId = findClaim(claims, 'sub')
+  const email = findClaim(claims, 'email')
+  const displayName = findClaim(claims, 'name')
+  if (!userId || !email || !displayName) return null
+
   return {
-    token: response.token,
-    userId: response.userId,
-    email: response.email,
-    displayName: response.displayName,
-    isAdmin: response.isAdmin,
+    userId,
+    email,
+    displayName,
+    isAdmin: findClaim(claims, 'role') === 'Admin',
   }
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() => readStoredUser())
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [logoutUrl, setLogoutUrl] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const persist = useCallback((next: AuthUser | null) => {
-    setUser(next)
-    if (next) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    } else {
-      localStorage.removeItem(STORAGE_KEY)
+  useEffect(() => {
+    let cancelled = false
+
+    authApi
+      .getUserClaims()
+      .then((claims) => {
+        if (cancelled) return
+        if (!claims) {
+          setUser(null)
+          setLogoutUrl(null)
+          return
+        }
+        setUser(toAuthUser(claims))
+        setLogoutUrl(findClaim(claims, 'bff:logout_url') ?? null)
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null)
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
-  const loginMutation = useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) => authApi.login(email, password),
-    onSuccess: (response) => persist(toAuthUser(response)),
-  })
+  // Redirection plein-écran obligatoire (pattern Duende.BFF) — pas de fetch/POST possible ici,
+  // /bff/login déclenche le flow OIDC Authorization Code + PKCE vers l'IdentityService.
+  const login = useCallback(() => {
+    window.location.href = `/bff/login?returnUrl=${encodeURIComponent(window.location.pathname)}`
+  }, [])
 
-  const registerMutation = useMutation({
-    mutationFn: ({ email, password, displayName }: { email: string; password: string; displayName: string }) =>
-      authApi.register(email, password, displayName),
-    onSuccess: (response) => persist(toAuthUser(response)),
-  })
+  // Même redirection : le choix "connexion" / "création de compte" se fait sur la page de
+  // l'IdentityService, pas ici (Duende.BFF n'expose qu'un seul point d'entrée /bff/login).
+  const register = login
 
-  const login = useCallback(
-    (email: string, password: string) => loginMutation.mutateAsync({ email, password }).then(() => undefined),
-    [loginMutation],
-  )
+  const logout = useCallback(() => {
+    if (logoutUrl) {
+      window.location.href = logoutUrl
+    }
+  }, [logoutUrl])
 
-  const register = useCallback(
-    (email: string, password: string, displayName: string) =>
-      registerMutation.mutateAsync({ email, password, displayName }).then(() => undefined),
-    [registerMutation],
-  )
-
-  const logout = useCallback(() => persist(null), [persist])
-
-  const updateDisplayName = useCallback(
-    (displayName: string) => {
-      setUser((current) => {
-        if (!current) return current
-        const next = { ...current, displayName }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-        return next
-      })
-    },
-    [],
-  )
+  const updateDisplayName = useCallback((displayName: string) => {
+    setUser((current) => (current ? { ...current, displayName } : current))
+  }, [])
 
   const value = useMemo(
-    () => ({ user, login, register, logout, updateDisplayName }),
-    [user, login, register, logout, updateDisplayName],
+    () => ({ user, isLoading, login, register, logout, updateDisplayName }),
+    [user, isLoading, login, register, logout, updateDisplayName],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

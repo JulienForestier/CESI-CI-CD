@@ -48,6 +48,12 @@ dist/
 dist-ssr/
 *.local
 
+# Build de identity-ui copié dans l'IdentityService (généré par le Dockerfile/CI)
+api/CESI-CI-CD.IdentityService/wwwroot/
+
+# Clé de signature générée localement par Duende IdentityServer (Automatic Key Management)
+api/CESI-CI-CD.IdentityService/keys/
+
 # Vite
 .vite/
 vite-env.d.ts
@@ -59,9 +65,11 @@ vite-env.d.ts
 .env.local
 .env.*.local
 .env.production.local
-appsettings.Development.json
 appsettings.*.json
 !appsettings.json
+!api/CESI-CI-CD.ApiService/appsettings.Development.json
+!api/CESI-CI-CD.ApiService/appsettings.Staging.json
+!api/CESI-CI-CD.ApiService/appsettings.Production.json
 
 # User secrets
 secrets.json

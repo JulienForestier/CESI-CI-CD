@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
+using Duende.Bff;
 using Microsoft.EntityFrameworkCore;
 
 namespace CESI_CI_CD.ApiService.Endpoints;
@@ -9,7 +10,8 @@ public static class NotificationEndpoints
 {
     public static void MapNotificationEndpoints(this IEndpointRouteBuilder app)
     {
-        var api = app.MapGroup("/api/notifications").RequireAuthorization();
+        var api = app.MapGroup(ApiRoutes.Notifications.Base).RequireAuthorization();
+        api.AsBffApiEndpoint();
 
         api.MapGet("", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
         {

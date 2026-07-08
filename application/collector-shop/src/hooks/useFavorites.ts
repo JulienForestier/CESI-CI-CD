@@ -7,7 +7,7 @@ export function useFavoriteIds() {
 
   return useQuery({
     queryKey: ['favorites', 'ids', user?.userId],
-    queryFn: () => favoritesApi.getFavoriteIds(user!.token),
+    queryFn: () => favoritesApi.getFavoriteIds(),
     enabled: Boolean(user),
   })
 }
@@ -17,20 +17,19 @@ export function useFavoriteListings() {
 
   return useQuery({
     queryKey: ['favorites', 'listings', user?.userId],
-    queryFn: () => favoritesApi.getFavorites(user!.token),
+    queryFn: () => favoritesApi.getFavorites(),
     enabled: Boolean(user),
   })
 }
 
 export function useToggleFavorite() {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ listingId, isFavorited }: { listingId: string; isFavorited: boolean }) =>
       isFavorited
-        ? favoritesApi.removeFavorite(user!.token, listingId)
-        : favoritesApi.addFavorite(user!.token, listingId),
+        ? favoritesApi.removeFavorite(listingId)
+        : favoritesApi.addFavorite(listingId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites'] })
     },

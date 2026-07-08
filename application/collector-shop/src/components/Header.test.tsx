@@ -34,6 +34,7 @@ describe('Header', () => {
 
   it('shows login/register links when logged out', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isLoading: false,
       user: null,
       login: vi.fn(),
       register: vi.fn(),
@@ -49,7 +50,8 @@ describe('Header', () => {
 
   it('shows a link to the profile page when logged in', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -66,7 +68,8 @@ describe('Header', () => {
 
   it('shows the moderation link for admin users', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
+      isLoading: false,
+      user: { userId: 'u', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -92,7 +95,8 @@ describe('Header', () => {
       },
     ])
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -117,7 +121,8 @@ describe('Header', () => {
       },
     ])
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -132,7 +137,8 @@ describe('Header', () => {
 
   it('shows the centres-interet link for logged-in users', () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'u', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -146,6 +152,7 @@ describe('Header', () => {
 
   it('toggles the mobile menu when the burger button is clicked', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isLoading: false,
       user: null,
       login: vi.fn(),
       register: vi.fn(),
@@ -173,7 +180,8 @@ describe('Header', () => {
 
   it('shows the profile link and utility links in the mobile menu', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'u', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
+      isLoading: false,
+      user: { userId: 'u', email: 'admin@collector.shop', displayName: 'Admin', isAdmin: true },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -199,6 +207,7 @@ describe('Header', () => {
 
   it('closes the mobile menu when a link inside it is clicked', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isLoading: false,
       user: null,
       login: vi.fn(),
       register: vi.fn(),

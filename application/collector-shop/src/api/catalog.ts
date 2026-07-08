@@ -15,15 +15,16 @@ export function getListings(filter: ListingsFilter = {}) {
   if (filter.categoryId) params.set('categoryId', filter.categoryId)
   if (filter.search) params.set('search', filter.search)
   const query = params.toString()
-  return apiFetch<Listing[]>(`/listings${query ? `?${query}` : ''}`)
+  const suffix = query ? `?${query}` : ''
+  return apiFetch<Listing[]>(`/listings${suffix}`)
 }
 
 export function getListing(id: string) {
   return apiFetch<Listing>(`/listings/${id}`)
 }
 
-export function getMyListings(token: string) {
-  return apiFetch<Listing[]>('/listings/mine', { token })
+export function getMyListings() {
+  return apiFetch<Listing[]>('/listings/mine')
 }
 
 export interface CreateListingInput {
@@ -33,6 +34,6 @@ export interface CreateListingInput {
   categoryId: string
 }
 
-export function createListing(token: string, input: CreateListingInput) {
-  return apiFetch<Listing>('/listings', { method: 'POST', body: input, token })
+export function createListing(input: CreateListingInput) {
+  return apiFetch<Listing>('/listings', { method: 'POST', body: input })
 }

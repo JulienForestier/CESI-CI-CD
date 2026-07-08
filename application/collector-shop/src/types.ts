@@ -1,11 +1,3 @@
-export interface AuthResponse {
-  token: string
-  userId: string
-  email: string
-  displayName: string
-  isAdmin: boolean
-}
-
 export interface Category {
   id: string
   name: string
