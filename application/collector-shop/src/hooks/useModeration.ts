@@ -7,17 +7,16 @@ export function usePendingListings() {
 
   return useQuery({
     queryKey: ['moderation', 'pending'],
-    queryFn: () => moderationApi.getPendingListings(user!.token),
+    queryFn: () => moderationApi.getPendingListings(),
     enabled: Boolean(user?.isAdmin),
   })
 }
 
 export function useApproveListing() {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (listingId: string) => moderationApi.approveListing(user!.token, listingId),
+    mutationFn: (listingId: string) => moderationApi.approveListing(listingId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['moderation', 'pending'] })
     },
@@ -25,12 +24,11 @@ export function useApproveListing() {
 }
 
 export function useRejectListing() {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ listingId, reason }: { listingId: string; reason: string }) =>
-      moderationApi.rejectListing(user!.token, listingId, reason),
+      moderationApi.rejectListing(listingId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['moderation', 'pending'] })
     },

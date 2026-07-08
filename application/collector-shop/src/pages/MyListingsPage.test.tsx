@@ -33,7 +33,8 @@ describe('MyListingsPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'seller-1', email: 'a@b.com', displayName: 'Vendeur', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'seller-1', email: 'a@b.com', displayName: 'Vendeur', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),

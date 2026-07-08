@@ -15,6 +15,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\CESI-CI-CD.ApiService\CESI-CI-CD.ApiService.csproj" />
+      <ProjectReference Include="..\CESI-CI-CD.IdentityService\CESI-CI-CD.IdentityService.csproj" />
     </ItemGroup>
 
 </Project>

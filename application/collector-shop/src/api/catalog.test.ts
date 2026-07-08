@@ -53,24 +53,23 @@ describe('catalog api', () => {
     expect(client.apiFetch).toHaveBeenCalledWith('/listings/listing-1')
   })
 
-  it('getMyListings calls /listings/mine with the bearer token', async () => {
+  it('getMyListings calls /listings/mine', async () => {
     vi.mocked(client.apiFetch).mockResolvedValue([])
 
-    await getMyListings('jwt-token')
+    await getMyListings()
 
-    expect(client.apiFetch).toHaveBeenCalledWith('/listings/mine', { token: 'jwt-token' })
+    expect(client.apiFetch).toHaveBeenCalledWith('/listings/mine')
   })
 
-  it('createListing posts with the bearer token', async () => {
+  it('createListing posts', async () => {
     vi.mocked(client.apiFetch).mockResolvedValue({})
     const input = { title: 'T', description: 'D', price: 10, categoryId: 'cat-1' }
 
-    await createListing('jwt-token', input)
+    await createListing(input)
 
     expect(client.apiFetch).toHaveBeenCalledWith('/listings', {
       method: 'POST',
       body: input,
-      token: 'jwt-token',
     })
   })
 })

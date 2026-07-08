@@ -7,17 +7,16 @@ export function useProfile() {
 
   return useQuery({
     queryKey: ['profile', user?.userId],
-    queryFn: () => usersApi.getMyProfile(user!.token),
+    queryFn: () => usersApi.getMyProfile(),
     enabled: Boolean(user),
   })
 }
 
 export function useUpdateDisplayName() {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (displayName: string) => usersApi.updateDisplayName(user!.token, displayName),
+    mutationFn: (displayName: string) => usersApi.updateDisplayName(displayName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] })
     },

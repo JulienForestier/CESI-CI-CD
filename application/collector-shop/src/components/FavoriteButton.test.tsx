@@ -22,6 +22,7 @@ describe('FavoriteButton', () => {
 
   it('navigates to /connexion when clicked while logged out', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isLoading: false,
       user: null,
       login: vi.fn(),
       register: vi.fn(),
@@ -46,7 +47,8 @@ describe('FavoriteButton', () => {
 
   it('shows an outline heart and adds the listing to favorites when clicked', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -60,12 +62,13 @@ describe('FavoriteButton', () => {
     expect(await screen.findByText('♡')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button'))
 
-    await waitFor(() => expect(favoritesApi.addFavorite).toHaveBeenCalledWith('jwt-token', 'listing-1'))
+    await waitFor(() => expect(favoritesApi.addFavorite).toHaveBeenCalledWith('listing-1'))
   })
 
   it('shows a filled heart and removes the listing from favorites when clicked', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -79,12 +82,13 @@ describe('FavoriteButton', () => {
     expect(await screen.findByText('♥')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button'))
 
-    await waitFor(() => expect(favoritesApi.removeFavorite).toHaveBeenCalledWith('jwt-token', 'listing-1'))
+    await waitFor(() => expect(favoritesApi.removeFavorite).toHaveBeenCalledWith('listing-1'))
   })
 
   it('renders a labeled button in the "button" variant', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'user-1', email: 'a@b.com', displayName: 'A', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),

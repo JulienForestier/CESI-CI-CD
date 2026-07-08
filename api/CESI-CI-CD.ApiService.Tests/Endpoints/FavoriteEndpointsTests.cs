@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -15,23 +14,16 @@ public class FavoriteEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         Converters = { new JsonStringEnumConverter() },
     };
 
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     public FavoriteEndpointsTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
-    private async Task<string> RegisterSellerAsync()
-    {
-        var email = $"{Guid.NewGuid()}@collector.shop";
-        var response = await _client.PostAsJsonAsync(
-            ApiRoutes.Auth.Register,
-            new RegisterRequest(email, "P@ssword123", "Vendeur Test"));
-
-        var body = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        return body!.Token;
-    }
+    private Task<TestUser> RegisterSellerAsync() => TestAuthHelper.CreateUserAsync(_factory, displayName: "Vendeur Test");
 
     private async Task<Guid> GetAnyCategoryIdAsync()
     {
@@ -39,14 +31,14 @@ public class FavoriteEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         return categories![0].Id;
     }
 
-    private async Task<Guid> CreatePublishedListingAsync(string sellerToken)
+    private async Task<Guid> CreatePublishedListingAsync(TestUser seller)
     {
         var categoryId = await GetAnyCategoryIdAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sellerToken);
+        TestAuthHelper.AuthenticateAs(_client, seller);
         var response = await _client.PostAsJsonAsync(
             ApiRoutes.Catalog.Listings,
             new CreateListingRequest($"Annonce {Guid.NewGuid():N}", "Description valide", 25, categoryId));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         var body = await response.Content.ReadFromJsonAsync<ListingResponse>(JsonOptions);
         return body!.Id;
@@ -79,11 +71,11 @@ public class FavoriteEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task PutFavorite_ReturnsNotFound_WhenListingUnknown()
     {
-        var token = await RegisterSellerAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var user = await RegisterSellerAsync();
+        TestAuthHelper.AuthenticateAs(_client, user);
 
         var response = await _client.PutAsync(ApiRoutes.Favorites.Toggle(Guid.NewGuid()), null);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -91,10 +83,10 @@ public class FavoriteEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task PutFavorite_AddsListingToFavorites_AndIsIdempotent()
     {
-        var sellerToken = await RegisterSellerAsync();
-        var listingId = await CreatePublishedListingAsync(sellerToken);
-        var buyerToken = await RegisterSellerAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+        var seller = await RegisterSellerAsync();
+        var listingId = await CreatePublishedListingAsync(seller);
+        var buyer = await RegisterSellerAsync();
+        TestAuthHelper.AuthenticateAs(_client, buyer);
 
         var first = await _client.PutAsync(ApiRoutes.Favorites.Toggle(listingId), null);
         var second = await _client.PutAsync(ApiRoutes.Favorites.Toggle(listingId), null);
@@ -103,7 +95,7 @@ public class FavoriteEndpointsTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.NoContent, second.StatusCode);
 
         var ids = await _client.GetFromJsonAsync<List<Guid>>(ApiRoutes.Favorites.FavoriteIds);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Single(ids!, id => id == listingId);
     }
@@ -111,17 +103,17 @@ public class FavoriteEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task DeleteFavorite_RemovesFavorite_AndIsIdempotentWhenNotFavorited()
     {
-        var sellerToken = await RegisterSellerAsync();
-        var listingId = await CreatePublishedListingAsync(sellerToken);
-        var buyerToken = await RegisterSellerAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+        var seller = await RegisterSellerAsync();
+        var listingId = await CreatePublishedListingAsync(seller);
+        var buyer = await RegisterSellerAsync();
+        TestAuthHelper.AuthenticateAs(_client, buyer);
 
         await _client.PutAsync(ApiRoutes.Favorites.Toggle(listingId), null);
         var firstDelete = await _client.DeleteAsync(ApiRoutes.Favorites.Toggle(listingId));
         var secondDelete = await _client.DeleteAsync(ApiRoutes.Favorites.Toggle(listingId));
 
         var ids = await _client.GetFromJsonAsync<List<Guid>>(ApiRoutes.Favorites.FavoriteIds);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.NoContent, firstDelete.StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, secondDelete.StatusCode);
@@ -131,19 +123,19 @@ public class FavoriteEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetFavorites_ReturnsOnlyCurrentUsersFavorites()
     {
-        var sellerToken = await RegisterSellerAsync();
-        var listingId = await CreatePublishedListingAsync(sellerToken);
+        var seller = await RegisterSellerAsync();
+        var listingId = await CreatePublishedListingAsync(seller);
 
-        var buyerToken = await RegisterSellerAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", buyerToken);
+        var buyer = await RegisterSellerAsync();
+        TestAuthHelper.AuthenticateAs(_client, buyer);
         await _client.PutAsync(ApiRoutes.Favorites.Toggle(listingId), null);
         var buyerFavorites = await _client.GetFromJsonAsync<List<ListingResponse>>(ApiRoutes.Favorites.List, JsonOptions);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
-        var otherToken = await RegisterSellerAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherToken);
+        var other = await RegisterSellerAsync();
+        TestAuthHelper.AuthenticateAs(_client, other);
         var otherFavorites = await _client.GetFromJsonAsync<List<ListingResponse>>(ApiRoutes.Favorites.List, JsonOptions);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Contains(buyerFavorites!, l => l.Id == listingId);
         Assert.DoesNotContain(otherFavorites!, l => l.Id == listingId);

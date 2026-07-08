@@ -5,22 +5,21 @@ import * as client from './client'
 vi.mock('./client')
 
 describe('notifications api', () => {
-  it('getNotifications calls /notifications with the bearer token', async () => {
+  it('getNotifications calls /notifications', async () => {
     vi.mocked(client.apiFetch).mockResolvedValue([])
 
-    await getNotifications('jwt-token')
+    await getNotifications()
 
-    expect(client.apiFetch).toHaveBeenCalledWith('/notifications', { token: 'jwt-token' })
+    expect(client.apiFetch).toHaveBeenCalledWith('/notifications')
   })
 
   it('markAllNotificationsRead POSTs /notifications/mark-all-read', async () => {
     vi.mocked(client.apiFetch).mockResolvedValue(undefined)
 
-    await markAllNotificationsRead('jwt-token')
+    await markAllNotificationsRead()
 
     expect(client.apiFetch).toHaveBeenCalledWith('/notifications/mark-all-read', {
       method: 'POST',
-      token: 'jwt-token',
     })
   })
 })

@@ -5,16 +5,16 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ListingDetailPage } from './ListingDetailPage'
 import { ApiError } from '../api/client'
+import * as authApi from '../api/auth'
 import * as catalogApi from '../api/catalog'
 import * as chatApi from '../api/chat'
 import { AuthProvider } from '../context/AuthContext'
 import { createTestQueryClient } from '../test/queryClient'
 import type { Listing } from '../types'
 
+vi.mock('../api/auth')
 vi.mock('../api/catalog')
 vi.mock('../api/chat')
-
-const AUTH_STORAGE_KEY = 'collector-shop-auth'
 
 const listing: Listing = {
   id: 'listing-1',
@@ -31,11 +31,16 @@ const listing: Listing = {
   categoryName: 'Figurines',
 }
 
+function loginAs(userId: string, displayName: string) {
+  vi.mocked(authApi.getUserClaims).mockResolvedValue([
+    { type: 'sub', value: userId },
+    { type: 'email', value: `${userId}@collector.shop` },
+    { type: 'name', value: displayName },
+  ])
+}
+
 function loginAsBuyer() {
-  localStorage.setItem(
-    AUTH_STORAGE_KEY,
-    JSON.stringify({ token: 'jwt-token', userId: 'buyer-1', email: 'buyer@collector.shop', displayName: 'Buyer' }),
-  )
+  loginAs('buyer-1', 'Buyer')
 }
 
 function renderAt(id: string) {
@@ -57,7 +62,7 @@ function renderAt(id: string) {
 describe('ListingDetailPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    localStorage.clear()
+    vi.mocked(authApi.getUserClaims).mockResolvedValue(null)
   })
 
   it('renders the listing once loaded', async () => {
@@ -106,7 +111,7 @@ describe('ListingDetailPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: '💬 Discuter avec le vendeur' }))
 
     expect(await screen.findByText('Fil de conversation')).toBeInTheDocument()
-    expect(chatApi.startConversation).toHaveBeenCalledWith('jwt-token', 'listing-1')
+    expect(chatApi.startConversation).toHaveBeenCalledWith('listing-1')
   })
 
   it('shows an error message when starting the conversation fails', async () => {
@@ -128,11 +133,7 @@ describe('ListingDetailPage', () => {
   })
 
   it('hides the contact-seller button for the listing owner', async () => {
-    loginAsBuyer()
-    localStorage.setItem(
-      AUTH_STORAGE_KEY,
-      JSON.stringify({ token: 'jwt-token', userId: 'seller-1', email: 'seller@collector.shop', displayName: 'Vendeur' }),
-    )
+    loginAs('seller-1', 'Vendeur')
     vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
 
     renderAt('listing-1')

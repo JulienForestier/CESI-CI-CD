@@ -1,5 +1,6 @@
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Data;
+using Duende.Bff;
 using CESI_CI_CD.ApiService.Data.Entities;
 using CESI_CI_CD.ApiService.Services;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ public static class ModerationEndpoints
     public static void MapModerationEndpoints(this IEndpointRouteBuilder app)
     {
         var api = app.MapGroup(ApiRoutes.Moderation.Base).RequireAuthorization("AdminOnly");
+        api.AsBffApiEndpoint();
 
         api.MapGet("/listings/pending", async (CollectorShopDbContext db) =>
         {

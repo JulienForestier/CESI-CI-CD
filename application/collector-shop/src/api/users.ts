@@ -1,10 +1,10 @@
 import { apiFetch } from './client'
 import type { UserProfile } from '../types'
 
-export function getMyProfile(token: string) {
-  return apiFetch<UserProfile>('/users/me', { token })
+export function getMyProfile() {
+  return apiFetch<UserProfile>('/users/me')
 }
 
-export function updateDisplayName(token: string, displayName: string) {
-  return apiFetch<UserProfile>('/users/me', { method: 'PATCH', token, body: { displayName } })
+export function updateDisplayName(displayName: string) {
+  return apiFetch<UserProfile>('/users/me', { method: 'PATCH', body: { displayName } })
 }

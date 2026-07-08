@@ -28,6 +28,7 @@ describe('App routing', () => {
     vi.mocked(catalogApi.getCategories).mockResolvedValue([])
     vi.mocked(catalogApi.getListings).mockResolvedValue([])
     vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isLoading: false,
       user: null,
       login: vi.fn(),
       register: vi.fn(),
@@ -68,7 +69,8 @@ describe('App routing', () => {
 
   it('renders my listings when logged in', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 't', userId: 'seller-1', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'seller-1', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),

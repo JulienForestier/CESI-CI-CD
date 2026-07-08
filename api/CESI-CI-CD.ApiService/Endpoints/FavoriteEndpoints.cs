@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CESI_CI_CD.ApiService.Data;
+using Duende.Bff;
 using CESI_CI_CD.ApiService.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,7 @@ public static class FavoriteEndpoints
     public static void MapFavoriteEndpoints(this IEndpointRouteBuilder app)
     {
         var api = app.MapGroup(ApiRoutes.Favorites.Base);
+        api.AsBffApiEndpoint();
 
         api.MapGet("/favorites", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
         {

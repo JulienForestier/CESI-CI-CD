@@ -48,6 +48,12 @@ dist/
 dist-ssr/
 *.local
 
+# Build de identity-ui copié dans l'IdentityService (généré par le Dockerfile/CI)
+api/CESI-CI-CD.IdentityService/wwwroot/
+
+# Clé de signature générée localement par Duende IdentityServer (Automatic Key Management)
+api/CESI-CI-CD.IdentityService/keys/
+
 # Vite
 .vite/
 vite-env.d.ts

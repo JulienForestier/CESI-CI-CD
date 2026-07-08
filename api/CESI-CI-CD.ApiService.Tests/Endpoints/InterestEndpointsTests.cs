@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using CESI_CI_CD.ApiService.Contracts;
 using CESI_CI_CD.ApiService.Endpoints;
@@ -8,23 +7,16 @@ namespace CESI_CI_CD.ApiService.Tests.Endpoints;
 
 public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 {
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     public InterestEndpointsTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
-    private async Task<string> RegisterUserAsync()
-    {
-        var email = $"{Guid.NewGuid()}@collector.shop";
-        var response = await _client.PostAsJsonAsync(
-            ApiRoutes.Auth.Register,
-            new RegisterRequest(email, "P@ssword123", "Utilisateur Test"));
-
-        var body = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        return body!.Token;
-    }
+    private Task<TestUser> RegisterUserAsync() => TestAuthHelper.CreateUserAsync(_factory, displayName: "Utilisateur Test");
 
     private async Task<List<Guid>> GetAllCategoryIdsAsync()
     {
@@ -51,11 +43,11 @@ public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task GetInterests_ReturnsEmptyList_ForNewUser()
     {
-        var token = await RegisterUserAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var user = await RegisterUserAsync();
+        TestAuthHelper.AuthenticateAs(_client, user);
 
         var interests = await _client.GetFromJsonAsync<List<Guid>>(ApiRoutes.Interests.Base);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Empty(interests!);
     }
@@ -63,11 +55,11 @@ public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task PutInterests_ReturnsBadRequest_WhenCategoryUnknown()
     {
-        var token = await RegisterUserAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var user = await RegisterUserAsync();
+        TestAuthHelper.AuthenticateAs(_client, user);
 
         var response = await _client.PutAsJsonAsync(ApiRoutes.Interests.Base, new UpdateInterestsRequest([Guid.NewGuid()]));
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -76,15 +68,15 @@ public class InterestEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     public async Task PutInterests_SavesSelection_AndReplacesPreviousOne()
     {
         var categoryIds = await GetAllCategoryIdsAsync();
-        var token = await RegisterUserAsync();
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var user = await RegisterUserAsync();
+        TestAuthHelper.AuthenticateAs(_client, user);
 
         var first = await _client.PutAsJsonAsync(ApiRoutes.Interests.Base, new UpdateInterestsRequest([categoryIds[0], categoryIds[1]]));
         var afterFirst = await _client.GetFromJsonAsync<List<Guid>>(ApiRoutes.Interests.Base);
 
         var second = await _client.PutAsJsonAsync(ApiRoutes.Interests.Base, new UpdateInterestsRequest([categoryIds[2]]));
         var afterSecond = await _client.GetFromJsonAsync<List<Guid>>(ApiRoutes.Interests.Base);
-        _client.DefaultRequestHeaders.Authorization = null;
+        TestAuthHelper.ClearAuth(_client);
 
         Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, second.StatusCode);

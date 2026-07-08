@@ -1,18 +1,18 @@
 import { apiFetch } from './client'
 import type { Listing } from '../types'
 
-export function getFavorites(token: string) {
-  return apiFetch<Listing[]>('/favorites', { token })
+export function getFavorites() {
+  return apiFetch<Listing[]>('/favorites')
 }
 
-export function getFavoriteIds(token: string) {
-  return apiFetch<string[]>('/favorites/ids', { token })
+export function getFavoriteIds() {
+  return apiFetch<string[]>('/favorites/ids')
 }
 
-export function addFavorite(token: string, listingId: string) {
-  return apiFetch<void>(`/listings/${listingId}/favorite`, { method: 'PUT', token })
+export function addFavorite(listingId: string) {
+  return apiFetch<void>(`/listings/${listingId}/favorite`, { method: 'PUT' })
 }
 
-export function removeFavorite(token: string, listingId: string) {
-  return apiFetch<void>(`/listings/${listingId}/favorite`, { method: 'DELETE', token })
+export function removeFavorite(listingId: string) {
+  return apiFetch<void>(`/listings/${listingId}/favorite`, { method: 'DELETE' })
 }

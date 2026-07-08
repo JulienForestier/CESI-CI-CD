@@ -53,7 +53,8 @@ describe('MessagesPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'buyer-1', email: 'a@b.com', displayName: 'Acheteur Test', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'buyer-1', email: 'a@b.com', displayName: 'Acheteur Test', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -87,7 +88,7 @@ describe('MessagesPage', () => {
     renderAt('/messages/conv-1')
 
     expect(await screen.findByText('Bonjour, toujours dispo ?')).toBeInTheDocument()
-    expect(chatApi.getMessages).toHaveBeenCalledWith('jwt-token', 'conv-1')
+    expect(chatApi.getMessages).toHaveBeenCalledWith('conv-1')
   })
 
   it('sends a new message and clears the input', async () => {
@@ -101,7 +102,7 @@ describe('MessagesPage', () => {
     await userEvent.type(input, 'Salut !')
     await userEvent.click(screen.getByRole('button', { name: 'Envoyer' }))
 
-    await waitFor(() => expect(chatApi.sendMessage).toHaveBeenCalledWith('jwt-token', 'conv-1', 'Salut !'))
+    await waitFor(() => expect(chatApi.sendMessage).toHaveBeenCalledWith('conv-1', 'Salut !'))
     await waitFor(() => expect(input).toHaveValue(''))
   })
 

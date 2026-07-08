@@ -48,7 +48,8 @@ describe('ProfilePage', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(AuthContext.useAuth).mockReturnValue({
-      user: { token: 'jwt-token', userId: 'user-1', email: 'buyer@collector.shop', displayName: 'Buyer Demo', isAdmin: false },
+      isLoading: false,
+      user: { userId: 'user-1', email: 'buyer@collector.shop', displayName: 'Buyer Demo', isAdmin: false },
       login: vi.fn(),
       register: vi.fn(),
       logout,
@@ -107,7 +108,7 @@ describe('ProfilePage', () => {
     await userEvent.type(input, 'Nouveau pseudo')
     await userEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
 
-    await waitFor(() => expect(usersApi.updateDisplayName).toHaveBeenCalledWith('jwt-token', 'Nouveau pseudo'))
+    await waitFor(() => expect(usersApi.updateDisplayName).toHaveBeenCalledWith('Nouveau pseudo'))
     expect(updateDisplayName).toHaveBeenCalledWith('Nouveau pseudo')
     expect(await screen.findByText('Votre pseudo a été mis à jour.')).toBeInTheDocument()
   })
