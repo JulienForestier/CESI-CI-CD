@@ -143,3 +143,8 @@ docker-compose.override.yml
 # Décommenter si vous préférez les ignorer
 # package-lock.json
 # CESI-CI-CD.csproj.nuget.lock
+
+# ============================================================================
+# Outils locaux (Claude Code)
+# ============================================================================
+.claude/

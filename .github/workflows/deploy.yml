@@ -1,0 +1,160 @@
+name: Build & Deploy
+
+on:
+  workflow_run:
+    workflows:
+      - CI - Orchestrator
+    types:
+      - completed
+    branches:
+      - dev
+      - release/**
+      - main
+
+concurrency:
+  group: deploy-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    outputs:
+      target_env: ${{ steps.target.outputs.target_env }}
+      front_image_tag: ${{ steps.front-tag.outputs.image_tag }}
+      api_image_tag: ${{ steps.api-tag.outputs.image_tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Set lowercase OWNER
+        run: |
+          echo "OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Determine target environment
+        id: target
+        env:
+          BRANCH_NAME: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          if [[ "$BRANCH_NAME" == "dev" ]]; then
+            TARGET_ENV="dev"
+          elif [[ "$BRANCH_NAME" == release/* ]]; then
+            TARGET_ENV="rec"
+          elif [[ "$BRANCH_NAME" == "main" ]]; then
+            TARGET_ENV="prod"
+          else
+            echo "::error::Unsupported branch for deployment: $BRANCH_NAME"
+            exit 1
+          fi
+
+          echo "target_env=$TARGET_ENV" >> "$GITHUB_OUTPUT"
+
+      - name: Compute image suffix
+        id: suffix
+        env:
+          BRANCH_NAME: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [[ "$BRANCH_NAME" == release/* ]]; then
+            IMAGE_SUFFIX="${BRANCH_NAME#release/}"
+          else
+            IMAGE_SUFFIX="$(echo "$HEAD_SHA" | cut -c1-7)"
+          fi
+
+          echo "suffix=$IMAGE_SUFFIX" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_PAT }}
+
+      - name: Compute front image tag
+        id: front-tag
+        run: echo "image_tag=${{ env.REGISTRY }}/${{ env.OWNER }}/collector-shop:${{ steps.suffix.outputs.suffix }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push front image
+        id: front-build
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+        with:
+          context: ./application/collector-shop
+          file: ./application/collector-shop/Dockerfile
+          push: true
+          tags: ${{ steps.front-tag.outputs.image_tag }}
+          cache-from: type=gha,scope=front
+          cache-to: type=gha,mode=max,scope=front
+
+      - name: Compute api image tag
+        id: api-tag
+        run: echo "image_tag=${{ env.REGISTRY }}/${{ env.OWNER }}/collector-shop-api:${{ steps.suffix.outputs.suffix }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push api image
+        id: api-build
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+        with:
+          context: ./api/CESI-CI-CD.ApiService
+          file: ./api/CESI-CI-CD.ApiService/Dockerfile
+          push: true
+          tags: ${{ steps.api-tag.outputs.image_tag }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      - name: Sign images (keyless, via GitHub OIDC)
+        run: |
+          cosign sign --yes "${{ steps.front-tag.outputs.image_tag }}@${{ steps.front-build.outputs.digest }}"
+          cosign sign --yes "${{ steps.api-tag.outputs.image_tag }}@${{ steps.api-build.outputs.digest }}"
+
+  update-kubernetes:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository }}
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Kubernetes repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/CESI-CI-CD-kubernetes
+          ref: main
+          token: ${{ secrets.GH_PAT }}
+          path: CESI-CI-CD-kubernetes
+
+      - name: Install kustomize
+        run: |
+          KUSTOMIZE_VERSION=v5.8.1
+          KUSTOMIZE_SHA256=029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d
+          curl -sL --proto '=https' --tlsv1.2 -o kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          echo "${KUSTOMIZE_SHA256}  kustomize.tar.gz" | sha256sum -c -
+          tar -xzf kustomize.tar.gz
+          echo "$PWD" >> "$GITHUB_PATH"
+
+      - name: Update images in overlay
+        run: |
+          cd CESI-CI-CD-kubernetes/overlays/${{ needs.build-and-push.outputs.target_env }}
+
+          kustomize edit set image \
+            "ghcr.io/OWNER/REPO=${{ needs.build-and-push.outputs.front_image_tag }}" \
+            "ghcr.io/OWNER/API=${{ needs.build-and-push.outputs.api_image_tag }}"
+
+          git config user.email "action@github.com"
+          git config user.name "github-actions"
+          git add kustomization.yaml
+          git commit -m "Update images: front=${{ needs.build-and-push.outputs.front_image_tag }}, api=${{ needs.build-and-push.outputs.api_image_tag }}" || echo "No changes"
+          git push

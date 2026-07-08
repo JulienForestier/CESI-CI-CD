@@ -25,21 +25,80 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: application/collector-shop
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run frontend tests with coverage
         working-directory: application/collector-shop
         run: npm test
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+
+      - name: Install SonarScanner for .NET
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Restore API dependencies
+        run: dotnet restore api/CESI-CI-CD.sln
+
+      - name: Begin SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
+        run: >
+          dotnet sonarscanner begin
+          /k:"JulienForestier_CESI-CI-CD"
+          /o:"julienforestier"
+          /d:sonar.host.url="https://sonarcloud.io"
+          /d:sonar.token="$SONAR_TOKEN"
+          /d:sonar.sources="application/collector-shop/src,api/CESI-CI-CD,api/CESI-CI-CD.ApiService"
+          /d:sonar.tests="application/collector-shop/src,api/CESI-CI-CD.ApiService.Tests"
+          /d:sonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,api/CESI-CI-CD.ApiService.Tests/**/*.cs"
+          /d:sonar.exclusions="**/node_modules/**,**/dist/**,**/bin/**,**/obj/**,**/coverage/**"
+          /d:sonar.coverage.exclusions="**/Migrations/**,api/CESI-CI-CD/**"
+          /d:sonar.javascript.lcov.reportPaths="application/collector-shop/coverage/lcov.info"
+          /d:sonar.cs.opencover.reportsPaths="api/CESI-CI-CD.ApiService.Tests/TestResults/**/coverage.opencover.xml"
+
+      - name: Build API
+        run: dotnet build api/CESI-CI-CD.sln --configuration Release --no-restore
+
+      - name: Run API tests with coverage
+        run: >
+          dotnet test api/CESI-CI-CD.ApiService.Tests --configuration Release --no-build
+          --collect:"XPlat Code Coverage" --settings api/CESI-CI-CD.ApiService.Tests/coverlet.runsettings
+
+      - name: End SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
+
+      - name: Locate Sonar report file
+        id: sonar-report
+        run: |
+          REPORT_FILE=$(find . -name report-task.txt -path "*/.sonarqube/*" | head -n 1)
+          if [ -z "$REPORT_FILE" ]; then
+            echo "report-task.txt not found under .sonarqube/" >&2
+            exit 1
+          fi
+          echo "path=$REPORT_FILE" >> "$GITHUB_OUTPUT"
 
       - name: SonarCloud Quality Gate Check
-        uses: SonarSource/sonarqube-quality-gate-action@v1
+        uses: SonarSource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1
         timeout-minutes: 5
+        with:
+          scanMetadataReportFile: ${{ steps.sonar-report.outputs.path }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io

@@ -11,6 +11,10 @@ on:
       - dev
       - main
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   issues: write
@@ -39,7 +43,7 @@ jobs:
               - 'application/collector-shop/**'
               - '.github/workflows/ci-front.yml'
               - '.github/workflows/code-quality-sast.yml'
-              - '.github/workflows/deploy-front.yml'
+              - '.github/workflows/deploy.yml'
             api:
               - 'api/**'
               - '!api/**/bin/**'
@@ -47,6 +51,7 @@ jobs:
               - '.github/workflows/ci-api.yml'
               - '.github/workflows/code-quality-sast.yml'
               - '.github/workflows/ci-security.yml'
+              - '.github/workflows/deploy.yml'
 
   front-pipeline:
     if: needs.detect-changes.outputs.front-changed == 'true'
@@ -66,6 +71,8 @@ jobs:
     with:
       trufflehog_base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       trufflehog_head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      front_changed: ${{ needs.detect-changes.outputs.front-changed }}
+      api_changed: ${{ needs.detect-changes.outputs.api-changed }}
     secrets: inherit
 
   code-quality-pipeline:
