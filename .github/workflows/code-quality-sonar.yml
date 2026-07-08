@@ -64,6 +64,13 @@ jobs:
           /o:"julienforestier"
           /d:sonar.host.url="https://sonarcloud.io"
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          /d:sonar.sources="application/collector-shop/src,api/CESI-CI-CD,api/CESI-CI-CD.ApiService"
+          /d:sonar.tests="application/collector-shop/src,api/CESI-CI-CD.ApiService.Tests"
+          /d:sonar.test.inclusions="**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,api/CESI-CI-CD.ApiService.Tests/**/*.cs"
+          /d:sonar.exclusions="**/node_modules/**,**/dist/**,**/bin/**,**/obj/**,**/coverage/**"
+          /d:sonar.coverage.exclusions="**/Migrations/**,api/CESI-CI-CD/**"
+          /d:sonar.javascript.lcov.reportPaths="application/collector-shop/coverage/lcov.info"
+          /d:sonar.cs.opencover.reportsPaths="api/CESI-CI-CD.ApiService.Tests/TestResults/**/coverage.opencover.xml"
 
       - name: Build API
         working-directory: api
