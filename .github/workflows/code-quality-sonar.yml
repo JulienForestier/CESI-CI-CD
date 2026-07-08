@@ -84,9 +84,21 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: dotnet sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
+      - name: Locate Sonar report file
+        id: sonar-report
+        run: |
+          REPORT_FILE=$(find . -name report-task.txt -path "*/.sonarqube/*" | head -n 1)
+          if [ -z "$REPORT_FILE" ]; then
+            echo "report-task.txt not found under .sonarqube/" >&2
+            exit 1
+          fi
+          echo "path=$REPORT_FILE" >> "$GITHUB_OUTPUT"
+
       - name: SonarCloud Quality Gate Check
         uses: SonarSource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1
         timeout-minutes: 5
+        with:
+          scanMetadataReportFile: ${{ steps.sonar-report.outputs.path }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
