@@ -37,35 +37,24 @@ describe('App routing', () => {
     })
   })
 
-  it('renders the catalog on the index route', async () => {
-    renderAt('/')
+  it.each([
+    ['/', 'Catalogue'],
+    ['/connexion', 'Bon retour parmi nous'],
+    ['/inscription', 'Créer un compte'],
+  ])('renders the "%s" heading directly at %s', async (path, heading) => {
+    renderAt(path)
 
-    expect(await screen.findByRole('heading', { name: 'Catalogue' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument()
   })
 
-  it('renders the login page on /connexion', async () => {
-    renderAt('/connexion')
+  it.each(['/annonces/nouvelle', '/mes-annonces'])(
+    'redirects to /connexion when visiting %s while logged out',
+    async (path) => {
+      renderAt(path)
 
-    expect(await screen.findByRole('heading', { name: 'Bon retour parmi nous' })).toBeInTheDocument()
-  })
-
-  it('renders the register page on /inscription', async () => {
-    renderAt('/inscription')
-
-    expect(await screen.findByRole('heading', { name: 'Créer un compte' })).toBeInTheDocument()
-  })
-
-  it('redirects to /connexion when visiting the new listing page while logged out', async () => {
-    renderAt('/annonces/nouvelle')
-
-    expect(await screen.findByRole('heading', { name: 'Bon retour parmi nous' })).toBeInTheDocument()
-  })
-
-  it('redirects to /connexion when visiting my listings while logged out', async () => {
-    renderAt('/mes-annonces')
-
-    expect(await screen.findByRole('heading', { name: 'Bon retour parmi nous' })).toBeInTheDocument()
-  })
+      expect(await screen.findByRole('heading', { name: 'Bon retour parmi nous' })).toBeInTheDocument()
+    },
+  )
 
   it('renders my listings when logged in', async () => {
     vi.mocked(AuthContext.useAuth).mockReturnValue({

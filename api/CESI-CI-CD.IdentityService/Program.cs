@@ -61,7 +61,9 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("auth", opt =>
     {
-        opt.PermitLimit = 10;
+        // Une limite réaliste (10/5min) ferait échouer les tests d'intégration, qui partagent
+        // tous le même hôte (et donc le même compteur) au sein d'une classe de test.
+        opt.PermitLimit = builder.Environment.IsEnvironment("Testing") ? 1000 : 10;
         opt.Window = TimeSpan.FromMinutes(5);
         opt.QueueLimit = 0;
     });
@@ -75,7 +77,11 @@ app.UseForwardedHeaders();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-    db.Database.Migrate();
+
+    if (!app.Environment.IsEnvironment("Testing"))
+    {
+        await db.Database.MigrateAsync();
+    }
 
     if (!app.Environment.IsEnvironment("Testing") && !await db.Users.AnyAsync(u => u.IsAdmin))
     {
@@ -98,10 +104,16 @@ using (var scope = app.Services.CreateScope())
 app.UseStaticFiles();
 // identity-ui est buildé avec base "/identity-assets/" (évite la collision avec les assets
 // hashés de collector-shop sous /assets/* du même host d'ingress) — ses fichiers restent
-// physiquement sous wwwroot/assets, donc on les republie sous ce préfixe d'URL.
+// physiquement sous wwwroot/assets, donc on les republie sous ce préfixe d'URL. On construit le
+// chemin depuis ContentRootPath (toujours renseigné) plutôt que WebRootPath, qui reste null tant
+// que wwwroot n'existe pas encore sur disque (ex. avant le build de identity-ui, ou en test) —
+// PhysicalFileProvider lève une exception à la construction si le dossier n'existe pas, donc on
+// le crée au besoin (dossier vide : sert simplement des 404 tant que identity-ui n'est pas buildé).
+var identityAssetsPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "assets");
+Directory.CreateDirectory(identityAssetsPath);
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(Path.Combine(app.Environment.WebRootPath, "assets")),
+    FileProvider = new PhysicalFileProvider(identityAssetsPath),
     RequestPath = "/identity-assets/assets",
 });
 app.UseRouting();
@@ -112,7 +124,7 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapAuthEndpoints();
 app.MapFallbackToFile("index.html");
 
-app.Run();
+await app.RunAsync();
 
 static X509Certificate2 LoadOrCreateSigningCertificate(IConfiguration configuration)
 {
@@ -132,5 +144,3 @@ static X509Certificate2 LoadOrCreateSigningCertificate(IConfiguration configurat
         RSASignaturePadding.Pkcs1);
     return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddYears(1));
 }
-
-public partial class Program;

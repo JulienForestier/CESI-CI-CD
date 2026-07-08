@@ -88,8 +88,8 @@ builder.Services.AddBff(options =>
         options.SlidingExpiration = true;
     });
 
-builder.Services.AddAuthorization(options =>
-    options.AddPolicy("AdminOnly", policy => policy.RequireClaim("role", "Admin")));
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("AdminOnly", policy => policy.RequireClaim("role", "Admin"));
 
 builder.Services.AddCors(options =>
 {
@@ -111,7 +111,7 @@ if (!app.Environment.IsEnvironment("Testing"))
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<CollectorShopDbContext>();
-    db.Database.Migrate();
+    await db.Database.MigrateAsync();
 }
 
 app.UseCors();
@@ -130,6 +130,4 @@ app.MapInterestEndpoints();
 app.MapNotificationEndpoints();
 app.MapUserEndpoints();
 
-app.Run();
-
-public partial class Program;
+await app.RunAsync();
