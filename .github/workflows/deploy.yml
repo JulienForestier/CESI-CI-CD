@@ -140,7 +140,7 @@ jobs:
         run: |
           KUSTOMIZE_VERSION=v5.8.1
           KUSTOMIZE_SHA256=029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d
-          curl -sL -o kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          curl -sL --proto '=https' --tlsv1.2 -o kustomize.tar.gz "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
           echo "${KUSTOMIZE_SHA256}  kustomize.tar.gz" | sha256sum -c -
           tar -xzf kustomize.tar.gz
           echo "$PWD" >> "$GITHUB_PATH"
