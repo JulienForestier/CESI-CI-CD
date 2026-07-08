@@ -52,8 +52,7 @@ jobs:
         run: dotnet tool install --global dotnet-sonarscanner
 
       - name: Restore API dependencies
-        working-directory: api
-        run: dotnet restore CESI-CI-CD.sln
+        run: dotnet restore api/CESI-CI-CD.sln
 
       - name: Begin SonarCloud analysis
         env:
@@ -73,14 +72,12 @@ jobs:
           /d:sonar.cs.opencover.reportsPaths="api/CESI-CI-CD.ApiService.Tests/TestResults/**/coverage.opencover.xml"
 
       - name: Build API
-        working-directory: api
-        run: dotnet build CESI-CI-CD.sln --configuration Release --no-restore
+        run: dotnet build api/CESI-CI-CD.sln --configuration Release --no-restore
 
       - name: Run API tests with coverage
-        working-directory: api
         run: >
-          dotnet test CESI-CI-CD.ApiService.Tests --configuration Release --no-build
-          --collect:"XPlat Code Coverage" --settings CESI-CI-CD.ApiService.Tests/coverlet.runsettings
+          dotnet test api/CESI-CI-CD.ApiService.Tests --configuration Release --no-build
+          --collect:"XPlat Code Coverage" --settings api/CESI-CI-CD.ApiService.Tests/coverlet.runsettings
 
       - name: End SonarCloud analysis
         env:
