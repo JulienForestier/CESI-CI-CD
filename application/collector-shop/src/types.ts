@@ -3,7 +3,7 @@ export interface Category {
   name: string
 }
 
-export type ListingStatus = 'Published' | 'Rejected' | 'Pending'
+export type ListingStatus = 'Published' | 'Rejected' | 'Pending' | 'Sold'
 
 export interface Listing {
   id: string
@@ -40,7 +40,7 @@ export interface Message {
   sentAt: string
 }
 
-export type NotificationType = 'NewListingMatch' | 'ListingApproved' | 'ListingRejected'
+export type NotificationType = 'NewListingMatch' | 'ListingApproved' | 'ListingRejected' | 'ListingSold'
 
 export interface AppNotification {
   id: string
@@ -68,5 +68,17 @@ export interface UserProfile {
   email: string
   displayName: string
   isAdmin: boolean
+  createdAt: string
+}
+
+export interface Purchase {
+  id: string
+  listingId: string
+  listingTitle: string
+  buyerId: string
+  sellerId: string
+  sellerDisplayName: string
+  price: number
+  commissionAmount: number
   createdAt: string
 }

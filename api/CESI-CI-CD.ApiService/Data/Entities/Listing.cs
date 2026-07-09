@@ -16,4 +16,12 @@ public class Listing
 
     public Guid CategoryId { get; set; }
     public Category? Category { get; set; }
+
+    // Jeton de concurrence optimiste (voir CollectorShopDbContext) — régénéré explicitement par
+    // le code applicatif à chaque écriture concurrente-sensible (achat), plutôt que par un
+    // mécanisme auto-généré par la base : ce dernier fonctionne sur un vrai Postgres mais n'est
+    // pas fiablement simulé par le provider EF Core InMemory utilisé dans les tests d'intégration
+    // (valeur jamais réellement régénérée). Un jeton géré en code se comporte identiquement sur
+    // les deux, garantissant un test de concurrence représentatif du comportement en production.
+    public Guid ConcurrencyStamp { get; set; } = Guid.NewGuid();
 }

@@ -52,4 +52,19 @@ public class NotificationService
 
         await db.SaveChangesAsync();
     }
+
+    public async Task NotifySellerOfSaleAsync(CollectorShopDbContext db, Listing listing)
+    {
+        db.Notifications.Add(new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = listing.SellerId,
+            Type = NotificationType.ListingSold,
+            Title = "Votre annonce a été vendue",
+            Message = $"« {listing.Title} » a été achetée. Retrouvez le détail dans vos ventes.",
+            ListingId = listing.Id,
+        });
+
+        await db.SaveChangesAsync();
+    }
 }

@@ -3,6 +3,7 @@ using System;
 using CESI_CI_CD.ApiService.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CESICICD.ApiService.Data.Migrations
 {
     [DbContext(typeof(CollectorShopDbContext))]
-    partial class CollectorShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260709124444_AddPurchases")]
+    partial class AddPurchases
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -252,38 +255,6 @@ namespace CESICICD.ApiService.Data.Migrations
                     b.ToTable("Notifications");
                 });
 
-            modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Report", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Details")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("ReporterId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReporterId");
-
-                    b.HasIndex("ListingId", "ReporterId")
-                        .IsUnique();
-
-                    b.ToTable("Reports");
-                });
-
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Purchase", b =>
                 {
                     b.Property<Guid>("Id")
@@ -473,25 +444,6 @@ namespace CESICICD.ApiService.Data.Migrations
                     b.Navigation("Listing");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Report", b =>
-                {
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.Listing", "Listing")
-                        .WithMany()
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.User", "Reporter")
-                        .WithMany()
-                        .HasForeignKey("ReporterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Listing");
-
-                    b.Navigation("Reporter");
                 });
 
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Purchase", b =>
