@@ -71,4 +71,12 @@ public static class ApiRoutes
 
         public static string Report(Guid listingId) => $"{Catalog.Base}/listings/{listingId}/report";
     }
+
+    public static class Purchases
+    {
+        public const string PurchaseTemplate = $"{Catalog.Base}/listings/{{id:guid}}/purchase";
+        public const string Mine = $"{Catalog.Base}/purchases/mine";
+
+        public static string Purchase(Guid listingId) => $"{Catalog.Base}/listings/{listingId}/purchase";
+    }
 }

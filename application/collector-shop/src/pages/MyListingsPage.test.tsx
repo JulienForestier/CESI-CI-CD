@@ -28,6 +28,7 @@ const published: Listing = {
 }
 
 const rejected: Listing = { ...published, id: 'listing-2', title: 'Annonce rejetée', status: 'Rejected' }
+const sold: Listing = { ...published, id: 'listing-3', title: 'Annonce vendue', status: 'Sold' }
 
 describe('MyListingsPage', () => {
   beforeEach(() => {
@@ -43,14 +44,16 @@ describe('MyListingsPage', () => {
   })
 
   it('shows own listings with a status badge', async () => {
-    vi.mocked(catalogApi.getMyListings).mockResolvedValue([published, rejected])
+    vi.mocked(catalogApi.getMyListings).mockResolvedValue([published, rejected, sold])
 
     renderWithProviders(<MyListingsPage />)
 
     expect(await screen.findByText('Annonce publiée')).toBeInTheDocument()
     expect(screen.getByText('Annonce rejetée')).toBeInTheDocument()
+    expect(screen.getByText('Annonce vendue')).toBeInTheDocument()
     expect(screen.getByText('Publiée')).toBeInTheDocument()
     expect(screen.getByText('Rejetée')).toBeInTheDocument()
+    expect(screen.getByText('Vendue')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /voir l'annonce/i })).toHaveAttribute(
       'href',
       '/annonces/listing-1',

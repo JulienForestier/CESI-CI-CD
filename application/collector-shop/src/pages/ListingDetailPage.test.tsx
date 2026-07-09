@@ -8,6 +8,7 @@ import { ApiError } from '../api/client'
 import * as authApi from '../api/auth'
 import * as catalogApi from '../api/catalog'
 import * as chatApi from '../api/chat'
+import * as purchasesApi from '../api/purchases'
 import { AuthProvider } from '../context/AuthContext'
 import { createTestQueryClient } from '../test/queryClient'
 import type { Listing } from '../types'
@@ -15,6 +16,7 @@ import type { Listing } from '../types'
 vi.mock('../api/auth')
 vi.mock('../api/catalog')
 vi.mock('../api/chat')
+vi.mock('../api/purchases')
 
 const listing: Listing = {
   id: 'listing-1',
@@ -52,6 +54,7 @@ function renderAt(id: string) {
             <Route path="/annonces/:id" element={<ListingDetailPage />} />
             <Route path="/connexion" element={<div>Page de connexion</div>} />
             <Route path="/messages/:conversationId" element={<div>Fil de conversation</div>} />
+            <Route path="/mes-achats" element={<div>Mes achats</div>} />
           </Routes>
         </AuthProvider>
       </MemoryRouter>
@@ -132,7 +135,7 @@ describe('ListingDetailPage', () => {
     )
   })
 
-  it('hides the contact-seller button for the listing owner', async () => {
+  it('hides the contact-seller and purchase buttons for the listing owner', async () => {
     loginAs('seller-1', 'Vendeur')
     vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
 
@@ -140,5 +143,55 @@ describe('ListingDetailPage', () => {
 
     await screen.findByText('Figurine rare')
     expect(screen.queryByRole('button', { name: '💬 Discuter avec le vendeur' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '🛒 Acheter' })).not.toBeInTheDocument()
+  })
+
+  it('navigates to /connexion when buying while logged out', async () => {
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+
+    renderAt('listing-1')
+
+    await userEvent.click(await screen.findByRole('button', { name: '🛒 Acheter' }))
+
+    expect(await screen.findByText('Page de connexion')).toBeInTheDocument()
+  })
+
+  it('purchases the listing and navigates to /mes-achats when logged in', async () => {
+    loginAsBuyer()
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+    vi.mocked(purchasesApi.purchaseListing).mockResolvedValue({
+      id: 'purchase-1',
+      listingId: 'listing-1',
+      listingTitle: 'Figurine rare',
+      buyerId: 'buyer-1',
+      sellerId: 'seller-1',
+      sellerDisplayName: 'Vendeur',
+      price: 42,
+      commissionAmount: 2.1,
+      createdAt: new Date().toISOString(),
+    })
+
+    renderAt('listing-1')
+
+    await userEvent.click(await screen.findByRole('button', { name: '🛒 Acheter' }))
+
+    expect(await screen.findByText('Mes achats')).toBeInTheDocument()
+    expect(purchasesApi.purchaseListing).toHaveBeenCalledWith('listing-1')
+  })
+
+  it('shows an error message when the purchase fails', async () => {
+    loginAsBuyer()
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+    vi.mocked(purchasesApi.purchaseListing).mockRejectedValue(
+      new ApiError(409, "Cette annonce n'est plus disponible à l'achat."),
+    )
+
+    renderAt('listing-1')
+
+    await userEvent.click(await screen.findByRole('button', { name: '🛒 Acheter' }))
+
+    await waitFor(() =>
+      expect(screen.getByText("Cette annonce n'est plus disponible à l'achat.")).toBeInTheDocument(),
+    )
   })
 })
