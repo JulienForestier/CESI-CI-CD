@@ -13,46 +13,47 @@ public static class UserEndpoints
         var api = app.MapGroup(ApiRoutes.Users.Base).RequireAuthorization();
         api.AsBffApiEndpoint();
 
-        api.MapGet("/me", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
+        api.MapGet("/me", GetMyProfileAsync);
+        api.MapPatch("/me", UpdateMyProfileAsync);
+    }
+
+    private static async Task<IResult> GetMyProfileAsync(ClaimsPrincipal user, CollectorShopDbContext db)
+    {
+        if (user.GetUserId() is not { } userId)
         {
-            var userId = user.GetUserId();
-            if (userId is null)
-            {
-                return Results.Unauthorized();
-            }
+            return Results.Unauthorized();
+        }
 
-            var entity = await db.Users.FindAsync(userId);
-            if (entity is null)
-            {
-                return Results.NotFound();
-            }
-
-            return Results.Ok(new UserProfileResponse(entity.Id, entity.Email, entity.DisplayName, entity.IsAdmin, entity.CreatedAt));
-        });
-
-        api.MapPatch("/me", async (UpdateProfileRequest request, ClaimsPrincipal user, CollectorShopDbContext db) =>
+        var entity = await db.Users.FindAsync(userId);
+        if (entity is null)
         {
-            var userId = user.GetUserId();
-            if (userId is null)
-            {
-                return Results.Unauthorized();
-            }
+            return Results.NotFound();
+        }
 
-            if (string.IsNullOrWhiteSpace(request.DisplayName))
-            {
-                return Results.BadRequest(new { message = "Le pseudo ne peut pas être vide." });
-            }
+        return Results.Ok(new UserProfileResponse(entity.Id, entity.Email, entity.DisplayName, entity.IsAdmin, entity.CreatedAt));
+    }
 
-            var entity = await db.Users.FindAsync(userId);
-            if (entity is null)
-            {
-                return Results.NotFound();
-            }
+    private static async Task<IResult> UpdateMyProfileAsync(UpdateProfileRequest request, ClaimsPrincipal user, CollectorShopDbContext db)
+    {
+        if (user.GetUserId() is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
 
-            entity.DisplayName = request.DisplayName.Trim();
-            await db.SaveChangesAsync();
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            return Results.BadRequest(new { message = "Le pseudo ne peut pas être vide." });
+        }
 
-            return Results.Ok(new UserProfileResponse(entity.Id, entity.Email, entity.DisplayName, entity.IsAdmin, entity.CreatedAt));
-        });
+        var entity = await db.Users.FindAsync(userId);
+        if (entity is null)
+        {
+            return Results.NotFound();
+        }
+
+        entity.DisplayName = request.DisplayName.Trim();
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new UserProfileResponse(entity.Id, entity.Email, entity.DisplayName, entity.IsAdmin, entity.CreatedAt));
     }
 }

@@ -15,119 +15,123 @@ public static class CatalogEndpoints
         var api = app.MapGroup(ApiRoutes.Catalog.Base);
         api.AsBffApiEndpoint();
 
-        api.MapGet("/categories", async (CollectorShopDbContext db) =>
+        api.MapGet("/categories", GetCategoriesAsync);
+        api.MapGet("/listings", GetListingsAsync);
+        api.MapGet("/listings/mine", GetMyListingsAsync).RequireAuthorization();
+        api.MapGet("/listings/{id:guid}", GetListingByIdAsync);
+        api.MapPost("/listings", CreateListingAsync).RequireAuthorization();
+    }
+
+    private static async Task<IResult> GetCategoriesAsync(CollectorShopDbContext db)
+    {
+        var categories = await db.Categories
+            .OrderBy(c => c.Name)
+            .Select(c => new CategoryResponse(c.Id, c.Name))
+            .ToListAsync();
+
+        return Results.Ok(categories);
+    }
+
+    private static async Task<IResult> GetListingsAsync(CollectorShopDbContext db, Guid? categoryId, string? search)
+    {
+        var query = db.Listings
+            .Include(l => l.Seller)
+            .Include(l => l.Category)
+            .Where(l => l.Status == ListingStatus.Published);
+
+        if (categoryId is not null)
         {
-            var categories = await db.Categories
-                .OrderBy(c => c.Name)
-                .Select(c => new CategoryResponse(c.Id, c.Name))
-                .ToListAsync();
+            query = query.Where(l => l.CategoryId == categoryId);
+        }
 
-            return Results.Ok(categories);
-        });
-
-        api.MapGet("/listings", async (CollectorShopDbContext db, Guid? categoryId, string? search) =>
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            var query = db.Listings
-                .Include(l => l.Seller)
-                .Include(l => l.Category)
-                .Where(l => l.Status == ListingStatus.Published);
+            var pattern = search.Trim().ToLower();
+            query = query.Where(l => l.Title.ToLower().Contains(pattern));
+        }
 
-            if (categoryId is not null)
-            {
-                query = query.Where(l => l.CategoryId == categoryId);
-            }
+        var listings = await query
+            .OrderByDescending(l => l.CreatedAt)
+            .Select(l => ListingMapper.ToResponse(l))
+            .ToListAsync();
 
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var pattern = search.Trim().ToLower();
-                query = query.Where(l => l.Title.ToLower().Contains(pattern));
-            }
+        return Results.Ok(listings);
+    }
 
-            var listings = await query
-                .OrderByDescending(l => l.CreatedAt)
-                .Select(l => ListingMapper.ToResponse(l))
-                .ToListAsync();
-
-            return Results.Ok(listings);
-        });
-
-        api.MapGet("/listings/mine", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
+    private static async Task<IResult> GetMyListingsAsync(ClaimsPrincipal user, CollectorShopDbContext db)
+    {
+        if (user.GetUserId() is not { } sellerId)
         {
-            var sellerId = user.GetUserId();
-            if (sellerId is null)
-            {
-                return Results.Unauthorized();
-            }
+            return Results.Unauthorized();
+        }
 
-            var listings = await db.Listings
-                .Include(l => l.Seller)
-                .Include(l => l.Category)
-                .Where(l => l.SellerId == sellerId)
-                .OrderByDescending(l => l.CreatedAt)
-                .Select(l => ListingMapper.ToResponse(l))
-                .ToListAsync();
+        var listings = await db.Listings
+            .Include(l => l.Seller)
+            .Include(l => l.Category)
+            .Where(l => l.SellerId == sellerId)
+            .OrderByDescending(l => l.CreatedAt)
+            .Select(l => ListingMapper.ToResponse(l))
+            .ToListAsync();
 
-            return Results.Ok(listings);
-        }).RequireAuthorization();
+        return Results.Ok(listings);
+    }
 
-        api.MapGet("/listings/{id:guid}", async (Guid id, CollectorShopDbContext db) =>
+    private static async Task<IResult> GetListingByIdAsync(Guid id, CollectorShopDbContext db)
+    {
+        var listing = await db.Listings
+            .Include(l => l.Seller)
+            .Include(l => l.Category)
+            .Where(l => l.Id == id && l.Status == ListingStatus.Published)
+            .Select(l => ListingMapper.ToResponse(l))
+            .FirstOrDefaultAsync();
+
+        return listing is null ? Results.NotFound() : Results.Ok(listing);
+    }
+
+    private static async Task<IResult> CreateListingAsync(
+        CreateListingRequest request,
+        ClaimsPrincipal user,
+        CollectorShopDbContext db,
+        ListingModerationService moderationService,
+        NotificationService notificationService)
+    {
+        if (user.GetUserId() is not { } sellerId)
         {
-            var listing = await db.Listings
-                .Include(l => l.Seller)
-                .Include(l => l.Category)
-                .Where(l => l.Id == id && l.Status == ListingStatus.Published)
-                .Select(l => ListingMapper.ToResponse(l))
-                .FirstOrDefaultAsync();
+            return Results.Unauthorized();
+        }
 
-            return listing is null ? Results.NotFound() : Results.Ok(listing);
-        });
-
-        api.MapPost("/listings", async (
-            CreateListingRequest request,
-            ClaimsPrincipal user,
-            CollectorShopDbContext db,
-            ListingModerationService moderationService,
-            NotificationService notificationService) =>
+        var categoryExists = await db.Categories.AnyAsync(c => c.Id == request.CategoryId);
+        if (!categoryExists)
         {
-            var sellerId = user.GetUserId();
-            if (sellerId is null)
-            {
-                return Results.Unauthorized();
-            }
+            return Results.BadRequest(new { message = "Catégorie inconnue." });
+        }
 
-            var categoryExists = await db.Categories.AnyAsync(c => c.Id == request.CategoryId);
-            if (!categoryExists)
-            {
-                return Results.BadRequest(new { message = "Catégorie inconnue." });
-            }
+        var review = moderationService.Review(request.Title, request.Description, request.Price);
 
-            var review = moderationService.Review(request.Title, request.Description, request.Price);
+        var listing = new Listing
+        {
+            Id = Guid.NewGuid(),
+            Title = request.Title,
+            Description = request.Description,
+            Price = request.Price,
+            Status = review.Status,
+            QualityScore = review.QualityScore,
+            ModerationReason = review.Reason,
+            SellerId = sellerId,
+            CategoryId = request.CategoryId,
+        };
 
-            var listing = new Listing
-            {
-                Id = Guid.NewGuid(),
-                Title = request.Title,
-                Description = request.Description,
-                Price = request.Price,
-                Status = review.Status,
-                QualityScore = review.QualityScore,
-                ModerationReason = review.Reason,
-                SellerId = sellerId.Value,
-                CategoryId = request.CategoryId,
-            };
+        db.Listings.Add(listing);
+        await db.SaveChangesAsync();
 
-            db.Listings.Add(listing);
-            await db.SaveChangesAsync();
+        await db.Entry(listing).Reference(l => l.Seller).LoadAsync();
+        await db.Entry(listing).Reference(l => l.Category).LoadAsync();
 
-            await db.Entry(listing).Reference(l => l.Seller).LoadAsync();
-            await db.Entry(listing).Reference(l => l.Category).LoadAsync();
+        if (listing.Status == ListingStatus.Published)
+        {
+            await notificationService.NotifyInterestedUsersOfNewListingAsync(db, listing);
+        }
 
-            if (listing.Status == ListingStatus.Published)
-            {
-                await notificationService.NotifyInterestedUsersOfNewListingAsync(db, listing);
-            }
-
-            return Results.Created($"/api/listings/{listing.Id}", ListingMapper.ToResponse(listing));
-        }).RequireAuthorization();
+        return Results.Created($"/api/listings/{listing.Id}", ListingMapper.ToResponse(listing));
     }
 }
