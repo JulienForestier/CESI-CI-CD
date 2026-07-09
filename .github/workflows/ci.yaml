@@ -17,9 +17,6 @@ concurrency:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
-  security-events: write
 
 jobs:
   detect-changes:
@@ -31,13 +28,13 @@ jobs:
       identity-changed: ${{ steps.filter.outputs.identity }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
 
       - name: Detect changed paths
         id: filter
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2
         with:
           filters: |
             front:
@@ -49,6 +46,11 @@ jobs:
               - 'api/**'
               - '!api/**/bin/**'
               - '!api/**/obj/**'
+              # L'IdentityService vit sous api/**, mais c'est un service distinct avec sa
+              # propre pipeline (identity-pipeline). On l'exclut donc du filtre api pour
+              # éviter qu'une modif purement identity ne relance aussi api-pipeline.
+              - '!api/CESI-CI-CD.IdentityService/**'
+              - '!api/CESI-CI-CD.IdentityService.Tests/**'
               - '.github/workflows/ci-api.yml'
               - '.github/workflows/code-quality-sast.yml'
               - '.github/workflows/ci-security.yml'
@@ -67,23 +69,35 @@ jobs:
   front-pipeline:
     if: needs.detect-changes.outputs.front-changed == 'true'
     needs: detect-changes
+    permissions:
+      contents: read
+      security-events: write
     uses: ./.github/workflows/ci-front.yml
     secrets: inherit
 
   api-pipeline:
     if: needs.detect-changes.outputs.api-changed == 'true'
     needs: detect-changes
+    permissions:
+      contents: read
+      security-events: write
     uses: ./.github/workflows/ci-api.yml
     secrets: inherit
 
   identity-pipeline:
     if: needs.detect-changes.outputs.identity-changed == 'true'
     needs: detect-changes
+    permissions:
+      contents: read
+      security-events: write
     uses: ./.github/workflows/ci-identity.yml
     secrets: inherit
 
   security-pipeline:
     needs: detect-changes
+    permissions:
+      contents: read
+      security-events: write
     uses: ./.github/workflows/ci-security.yml
     with:
       trufflehog_base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -93,17 +107,29 @@ jobs:
     secrets: inherit
 
   code-quality-pipeline:
-    # SonarCloud (plan gratuit) n'analyse avec quality gate que la branche
-    # principale et les Pull Requests ; pas les push directs sur les
-    # branches feature/release.
-    if: github.event_name == 'pull_request'
+    # SonarCloud tourne sur toutes les PR (quality gate BLOQUANT) et sur les push
+    # des branches longues dev/main, pour rafraîchir l'analyse de branche du
+    # dashboard (sinon la note globale du projet reste figée entre deux PR, ce qui
+    # masque l'état réel). Sur push, le gate n'est PAS bloquant (voir l'étape
+    # "Quality Gate Check" de code-quality-sonar.yml) afin de ne pas empêcher le
+    # déploiement post-merge. Les push feature/release restent exclus (éphémères).
+    if: >
+      github.event_name == 'pull_request' ||
+      github.ref == 'refs/heads/dev' ||
+      github.ref == 'refs/heads/main'
     needs: detect-changes
+    permissions:
+      contents: read
     uses: ./.github/workflows/code-quality-sonar.yml
     secrets: inherit
 
   status:
     if: always()
     needs: [front-pipeline, api-pipeline, identity-pipeline, security-pipeline, code-quality-pipeline]
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     uses: ./.github/workflows/ci-status.yml
     with:
       front_result: ${{ needs.front-pipeline.result }}
