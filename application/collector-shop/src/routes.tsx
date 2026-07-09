@@ -9,6 +9,7 @@ import { LoginPage } from './pages/LoginPage'
 import { MessagesPage } from './pages/MessagesPage'
 import { ModerationPage } from './pages/ModerationPage'
 import { MyListingsPage } from './pages/MyListingsPage'
+import { MyPurchasesPage } from './pages/MyPurchasesPage'
 import { NewListingPage } from './pages/NewListingPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -33,6 +34,14 @@ export const routeElements = (
       element={
         <ProtectedRoute>
           <MyListingsPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="mes-achats"
+      element={
+        <ProtectedRoute>
+          <MyPurchasesPage />
         </ProtectedRoute>
       }
     />

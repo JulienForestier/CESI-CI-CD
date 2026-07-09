@@ -3,11 +3,13 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, createRoutesFromElements, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as catalogApi from './api/catalog'
+import * as purchasesApi from './api/purchases'
 import * as AuthContext from './context/AuthContext'
 import { routeElements } from './routes'
 import { createTestQueryClient } from './test/queryClient'
 
 vi.mock('./api/catalog')
+vi.mock('./api/purchases')
 vi.mock('./context/AuthContext', async () => {
   const actual = await vi.importActual<typeof AuthContext>('./context/AuthContext')
   return { ...actual, useAuth: vi.fn() }
@@ -47,7 +49,7 @@ describe('App routing', () => {
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument()
   })
 
-  it.each(['/annonces/nouvelle', '/mes-annonces'])(
+  it.each(['/annonces/nouvelle', '/mes-annonces', '/mes-achats'])(
     'redirects to /connexion when visiting %s while logged out',
     async (path) => {
       renderAt(path)
@@ -70,5 +72,21 @@ describe('App routing', () => {
     renderAt('/mes-annonces')
 
     expect(await screen.findByRole('heading', { name: 'Mes annonces' })).toBeInTheDocument()
+  })
+
+  it('renders my purchases when logged in', async () => {
+    vi.mocked(AuthContext.useAuth).mockReturnValue({
+      isLoading: false,
+      user: { userId: 'buyer-1', email: 'a@b.com', displayName: 'Alice', isAdmin: false },
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      updateDisplayName: vi.fn(),
+    })
+    vi.mocked(purchasesApi.getMyPurchases).mockResolvedValue([])
+
+    renderAt('/mes-achats')
+
+    expect(await screen.findByRole('heading', { name: 'Mes achats' })).toBeInTheDocument()
   })
 })

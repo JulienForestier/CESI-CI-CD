@@ -97,6 +97,9 @@ function PrimaryNav({ user, orientation, onNavigate, className = '' }: NavGroupP
           <Link to="/mes-annonces" className={linkClass} onClick={onNavigate}>
             Mes annonces
           </Link>
+          <Link to="/mes-achats" className={linkClass} onClick={onNavigate}>
+            Mes achats
+          </Link>
         </>
       )}
     </nav>

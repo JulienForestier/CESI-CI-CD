@@ -201,6 +201,7 @@ app.MapModerationEndpoints();
 app.MapInterestEndpoints();
 app.MapNotificationEndpoints();
 app.MapUserEndpoints();
+app.MapPurchaseEndpoints();
 
 if (app.Environment.IsDevelopment())
 {
