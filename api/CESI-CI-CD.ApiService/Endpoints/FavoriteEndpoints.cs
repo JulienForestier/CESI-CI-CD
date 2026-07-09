@@ -21,8 +21,7 @@ public static class FavoriteEndpoints
 
     private static async Task<IResult> GetFavoritesAsync(ClaimsPrincipal user, CollectorShopDbContext db)
     {
-        var userId = user.GetUserId();
-        if (userId is null)
+        if (user.GetUserId() is not { } userId)
         {
             return Results.Unauthorized();
         }
@@ -39,8 +38,7 @@ public static class FavoriteEndpoints
 
     private static async Task<IResult> GetFavoriteIdsAsync(ClaimsPrincipal user, CollectorShopDbContext db)
     {
-        var userId = user.GetUserId();
-        if (userId is null)
+        if (user.GetUserId() is not { } userId)
         {
             return Results.Unauthorized();
         }
@@ -55,8 +53,7 @@ public static class FavoriteEndpoints
 
     private static async Task<IResult> AddFavoriteAsync(Guid id, ClaimsPrincipal user, CollectorShopDbContext db)
     {
-        var userId = user.GetUserId();
-        if (userId is null)
+        if (user.GetUserId() is not { } userId)
         {
             return Results.Unauthorized();
         }
@@ -70,7 +67,7 @@ public static class FavoriteEndpoints
         var alreadyFavorited = await db.Favorites.AnyAsync(f => f.UserId == userId && f.ListingId == id);
         if (!alreadyFavorited)
         {
-            db.Favorites.Add(new Favorite { Id = Guid.NewGuid(), UserId = userId.Value, ListingId = id });
+            db.Favorites.Add(new Favorite { Id = Guid.NewGuid(), UserId = userId, ListingId = id });
             await db.SaveChangesAsync();
         }
 
@@ -79,8 +76,7 @@ public static class FavoriteEndpoints
 
     private static async Task<IResult> RemoveFavoriteAsync(Guid id, ClaimsPrincipal user, CollectorShopDbContext db)
     {
-        var userId = user.GetUserId();
-        if (userId is null)
+        if (user.GetUserId() is not { } userId)
         {
             return Results.Unauthorized();
         }
