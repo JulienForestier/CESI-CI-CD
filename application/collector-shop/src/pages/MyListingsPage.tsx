@@ -9,12 +9,14 @@ const STATUS_LABELS: Record<ListingStatus, string> = {
   Published: 'Publiée',
   Rejected: 'Rejetée',
   Pending: 'En attente de modération',
+  Sold: 'Vendue',
 }
 
 const STATUS_CLASSES: Record<ListingStatus, string> = {
   Published: 'bg-verified text-teal',
   Rejected: 'bg-shipping text-burnt',
   Pending: 'bg-shipping text-burnt',
+  Sold: 'bg-ink/10 text-ink',
 }
 
 export function MyListingsPage() {
@@ -48,7 +50,7 @@ export function MyListingsPage() {
               </span>
               <div className="mb-0.5 font-ui text-[13px] font-bold text-ink">{listing.title}</div>
               <div className="mb-2 text-xs text-brown-2">{listing.categoryName}</div>
-              {listing.status !== 'Published' && (
+              {listing.status !== 'Published' && listing.status !== 'Sold' && (
                 <div className="mb-2 font-ui text-[11px] text-brown-2">{listing.moderationReason}</div>
               )}
               <div className="flex items-center justify-between">

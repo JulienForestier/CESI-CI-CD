@@ -22,18 +22,18 @@ Collector.shop est une marketplace C2C d'objets de collection. Le périmètre de
 
 - **CA1** : l'email doit être unique (conflit `409` sinon).
 - **CA2** : le mot de passe doit contenir au moins 8 caractères.
-- **CA3** : en cas de succès, je reçois un jeton d'authentification et suis redirigé vers le catalogue.
+- **CA3** : en cas de succès, une **session est ouverte** (cookie `HttpOnly` posé par le flow OIDC) et je suis redirigé vers le catalogue.
 
-**Preuve de conformité** : `Register_CreatesUser_AndReturnsToken`, `Register_ReturnsConflict_WhenEmailAlreadyUsed`, `Register_ReturnsBadRequest_WhenFieldMissing` (API), `RegisterPage` — *"registers and navigates to the catalog on success"*, *"shows a conflict error when the email is already used"* (front).
+**Preuve de conformité** : `Register_CreatesUser_AndReturnsRoot_WhenNoReturnUrl`, `Register_ReturnsConflict_WhenEmailAlreadyExists`, `Register_ReturnsBadRequest_WhenFieldMissing`, `Register_ReturnsBadRequest_WhenPasswordTooShort` (IdentityService.Tests) ; formulaire d'inscription testé côté `identity-ui` (`RegisterForm.test.tsx`).
 
 ### US3 — Se connecter
 
 > En tant qu'**utilisateur inscrit**, je veux me connecter avec mes identifiants, afin de retrouver mon espace.
 
-- **CA1** : identifiants valides → jeton retourné.
+- **CA1** : identifiants valides → **session ouverte** (cookie de session émis par l'IdentityServer via le BFF).
 - **CA2** : email inconnu **ou** mot de passe incorrect → `401` avec un message générique identique dans les deux cas (pas d'énumération des comptes existants).
 
-**Preuve de conformité** : `Login_ReturnsToken_WithValidCredentials`, `Login_ReturnsUnauthorized_WhenUserUnknown`, `Login_ReturnsUnauthorized_WhenPasswordWrong` (API), `LoginPage` — *"logs in and navigates to the catalog on success"*, *"shows an error message on invalid credentials"* (front).
+**Preuve de conformité** : `Login_ReturnsOk_WithValidCredentials`, `Login_ReturnsUnauthorized_WhenEmailUnknown`, `Login_ReturnsUnauthorized_WhenPasswordWrong` (IdentityService.Tests) ; formulaire de connexion testé côté `identity-ui` (`LoginForm.test.tsx`).
 
 ### US4 — Publier une annonce (avec contrôle qualité automatique)
 
@@ -88,7 +88,7 @@ Collector.shop est une marketplace C2C d'objets de collection. Le périmètre de
 | US6 — Recherche par mot-clé | 2 tests (API + front) | ✅ Conforme |
 | US7 — Mes annonces | 5 tests (API + front) | ✅ Conforme |
 
-L'ensemble de ces critères d'acceptation est couvert par des **tests d'intégration API réels** (via `WebApplicationFactory`, base de données en mémoire, JWT réellement émis et vérifié) et des **tests de composants front** (rendu, interactions utilisateur simulées via `@testing-library/user-event`), exécutés à chaque Pull Request (voir [Processus de test](./02-processus-test.md)).
+L'ensemble de ces critères d'acceptation est couvert par des **tests d'intégration API réels** (via `WebApplicationFactory`, base de données en mémoire, **cookie de session / flow OIDC réellement émis et vérifié** — l'authentification traverse le BFF et l'IdentityServer) et des **tests de composants front** (rendu, interactions utilisateur simulées via `@testing-library/user-event`), exécutés à chaque Pull Request (voir [Processus de test](./02-processus-test.md)).
 
 ## Comptes de démonstration (environnement `dev`)
 

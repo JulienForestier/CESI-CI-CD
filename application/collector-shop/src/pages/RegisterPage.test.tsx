@@ -29,6 +29,7 @@ describe('RegisterPage', () => {
     render(<RegisterPage />)
 
     expect(register).toHaveBeenCalled()
+    expect(screen.getByRole('status', { name: 'Redirection en cours' })).toBeInTheDocument()
   })
 
   it('also redirects when the fallback button is clicked', async () => {

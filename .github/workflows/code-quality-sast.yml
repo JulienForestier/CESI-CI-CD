@@ -21,23 +21,25 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   semgrep:
     name: Analyse de sécurité
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
     container:
       image: returntocorp/semgrep
     steps:
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Scan Semgrep
         run: semgrep --config "${{ inputs.config }}" --sarif --output semgrep.sarif --error "${{ inputs.scan_path }}"
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4
         if: always()
         with:
           sarif_file: semgrep.sarif

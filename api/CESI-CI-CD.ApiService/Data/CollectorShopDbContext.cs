@@ -13,6 +13,7 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Interest> Interests => Set<Interest>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Purchase> Purchases => Set<Purchase>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +36,15 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
             .WithMany(c => c.Listings)
             .HasForeignKey(l => l.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Jeton de concurrence optimiste (ConcurrencyStamp, régénéré explicitement par le code
+        // applicatif — voir Listing.cs et PurchaseEndpoints). Utilisé pour la transition d'état
+        // atomique de l'achat d'annonce : sous deux acheteurs concurrents, celui qui écrit en
+        // second sur une ligne déjà modifiée déclenche une DbUpdateConcurrencyException, capturée
+        // pour renvoyer 409 Conflict.
+        modelBuilder.Entity<Listing>()
+            .Property(l => l.ConcurrencyStamp)
+            .IsConcurrencyToken();
 
         modelBuilder.Entity<Favorite>()
             .HasIndex(f => new { f.UserId, f.ListingId })
@@ -113,6 +123,24 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
             .WithMany()
             .HasForeignKey(n => n.ListingId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Purchase>()
+            .HasOne(p => p.Listing)
+            .WithMany()
+            .HasForeignKey(p => p.ListingId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Purchase>()
+            .HasOne(p => p.Buyer)
+            .WithMany()
+            .HasForeignKey(p => p.BuyerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Purchase>()
+            .HasOne(p => p.Seller)
+            .WithMany()
+            .HasForeignKey(p => p.SellerId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Catégories créées par l'admin (cf. contexte métier : seul l'admin crée les catégories)
         modelBuilder.Entity<Category>().HasData(

@@ -26,8 +26,7 @@ public static class ChatEndpoints
         ClaimsPrincipal user,
         CollectorShopDbContext db)
     {
-        var userId = user.GetUserId();
-        if (userId is null)
+        if (user.GetUserId() is not { } userId)
         {
             return Results.Unauthorized();
         }
@@ -52,7 +51,7 @@ public static class ChatEndpoints
             {
                 Id = Guid.NewGuid(),
                 ListingId = listing.Id,
-                BuyerId = userId.Value,
+                BuyerId = userId,
                 SellerId = listing.SellerId,
             };
             db.Conversations.Add(conversation);
@@ -64,8 +63,7 @@ public static class ChatEndpoints
 
     private static async Task<IResult> GetConversationsAsync(ClaimsPrincipal user, CollectorShopDbContext db)
     {
-        var userId = user.GetUserId();
-        if (userId is null)
+        if (user.GetUserId() is not { } userId)
         {
             return Results.Unauthorized();
         }
@@ -79,7 +77,7 @@ public static class ChatEndpoints
             .ToListAsync();
 
         var responses = conversations
-            .Select(c => ToConversationResponse(c, userId.Value))
+            .Select(c => ToConversationResponse(c, userId))
             .OrderByDescending(c => c.LastMessageAt ?? DateTimeOffset.MinValue)
             .ToList();
 
@@ -88,8 +86,7 @@ public static class ChatEndpoints
 
     private static async Task<IResult> GetMessagesAsync(Guid id, ClaimsPrincipal user, CollectorShopDbContext db)
     {
-        var userId = user.GetUserId();
-        if (userId is null)
+        if (user.GetUserId() is not { } userId)
         {
             return Results.Unauthorized();
         }
@@ -133,8 +130,7 @@ public static class ChatEndpoints
         ClaimsPrincipal user,
         CollectorShopDbContext db)
     {
-        var userId = user.GetUserId();
-        if (userId is null)
+        if (user.GetUserId() is not { } userId)
         {
             return Results.Unauthorized();
         }
@@ -168,7 +164,7 @@ public static class ChatEndpoints
         {
             Id = Guid.NewGuid(),
             ConversationId = conversation.Id,
-            SenderId = userId.Value,
+            SenderId = userId,
             Body = body,
         };
 

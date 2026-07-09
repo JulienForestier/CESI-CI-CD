@@ -28,7 +28,7 @@ export function AuthFormShell({
   children,
 }: Readonly<AuthFormShellProps>) {
   return (
-    <div className="mx-auto mt-20 max-w-md rounded-2xl border-[1.5px] border-ink/15 bg-card p-10 text-center">
+    <div className="mx-auto max-w-md rounded-2xl border-[1.5px] border-ink/15 bg-card p-10 text-center">
       <span className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-full border-2 border-ink font-display text-xl">
         C
       </span>

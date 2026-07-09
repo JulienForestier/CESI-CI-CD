@@ -15,4 +15,8 @@
       </PackageReference>
     </ItemGroup>
 
+    <ItemGroup>
+      <None Include="Properties\launchSettings.json" />
+    </ItemGroup>
+
 </Project>

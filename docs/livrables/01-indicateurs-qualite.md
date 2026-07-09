@@ -8,7 +8,7 @@ Quatre indicateurs ont été retenus pour couvrir les quatre axes de qualité lo
 |---|---|
 | **Outil** | SonarCloud (`sonar.cs.opencover.reportsPaths` pour l'API, `sonar.javascript.lcov.reportPaths` pour le front) |
 | **Seuil** | ≥ 80 % de couverture sur le *new code* (condition du Quality Gate "Sonar way") |
-| **Mesure constatée (PR #7)** | **94,9 %** de couverture sur le code nouveau ; 100 % de couverture statements côté front (Vitest), ~96 % côté API (.NET, hors migrations EF Core générées) |
+| **Mesure constatée** | Quality Gate `OK` sur les PR : couverture du *new code* **≥ 80 %** (condition bloquante). Base de tests : **263 tests automatisés** (107 backend .NET, 156 front Vitest), ~98 % de couverture statements côté front, couverture API hors migrations EF Core générées |
 | **Lien avec la dette technique** | Le calcul porte sur le *new code*, pas sur l'ensemble du dépôt : un développeur ne peut pas "diluer" une baisse de couverture dans une base de code ancienne déjà bien testée. Le Quality Gate est bloquant sur la PR (branch protection GitHub) : une régression de couverture ne peut pas être mergée, donc ne peut jamais s'accumuler silencieusement. |
 
 ## 2. Note de fiabilité, sécurité et maintenabilité (ratings SonarCloud) — *Fiabilité / Maintenabilité*
@@ -17,7 +17,7 @@ Quatre indicateurs ont été retenus pour couvrir les quatre axes de qualité lo
 |---|---|
 | **Outil** | SonarCloud — `new_reliability_rating`, `new_maintainability_rating`, `new_security_rating`, `new_duplicated_lines_density` |
 | **Seuil** | Rating A (1) sur les trois notes ; duplication < 3 % sur le code nouveau |
-| **Mesure constatée (PR #7)** | Reliability A, Security A, Maintainability A, duplication **1,9 %** |
+| **Mesure constatée** | Sur le *new code* des PR : Reliability A, Security A, Maintainability A, duplication **< 3 %** (Quality Gate `OK`). L'analyse Sonar tourne aussi sur les push `dev`/`main` pour maintenir la note globale du projet à jour |
 | **Lien avec la dette technique** | Ces notes reflètent la densité de *code smells*, bugs potentiels et duplication détectés statiquement. Les bloquer en Quality Gate empêche l'accumulation de "petits compromis" (copier-coller, complexité cyclomatique excessive, mauvaises pratiques du langage) qui, cumulés PR après PR, sont la définition même de la dette technique. |
 
 ## 3. Temps de réponse et taux d'échec sous charge — *Performance*
@@ -35,7 +35,7 @@ Quatre indicateurs ont été retenus pour couvrir les quatre axes de qualité lo
 |---|---|
 | **Outil** | `readinessProbe` / `livenessProbe` Kubernetes sur `/health` (API) et `/` (front), observés via `kubectl get pods` et le statut ArgoCD (`Healthy` / `Synced`) |
 | **Seuil** | 0 redémarrage inattendu (`RESTARTS`), statut `Healthy` en continu |
-| **Mesure constatée** | Pods `apiservice` et `myapp` en `Running 1/1`, **0 restart** avant et après la campagne de charge et le durcissement de sécurité (`securityContext` non-root, `readOnlyRootFilesystem`) |
+| **Mesure constatée** | Les trois pods applicatifs (`myapp`, `apiservice`, `identityservice`) en `Running`, **0 restart** avant et après la campagne de charge et le durcissement de sécurité (`securityContext` non-root, `readOnlyRootFilesystem`) ; probes `/health` (API/IdP) et `/` (front) vertes |
 | **Lien avec la dette technique** | Des redémarrages fréquents (CrashLoopBackOff, OOMKilled) trahissent une dette d'infrastructure (limites de ressources mal dimensionnées, fuite mémoire applicative) qui, non traitée, dégrade la disponibilité perçue par l'utilisateur au fil des déploiements. |
 
 ## Synthèse

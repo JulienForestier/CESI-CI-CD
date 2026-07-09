@@ -15,7 +15,8 @@ Documents produits pour l'évaluation de bloc, organisés par thème conforméme
 
 ## Preuves à l'appui (résultats réels, session de développement)
 
-- **Pull Request #7** (fonctionnalité métier) : SonarCloud Quality Gate `OK`, couverture new code **94,9 %**, 23/23 checks CI verts.
+- **Qualité (SonarCloud)** : Quality Gate `OK` sur les Pull Requests — couverture new code **≥ 80 %**, ratings A, duplication < 3 % ; **263 tests automatisés** (107 backend .NET, 156 front). Les *required status checks* GitHub bloquent toute fusion non conforme.
+- **Architecture** : migration de l'authentification vers **OpenID Connect / OAuth 2.0** (Duende IdentityServer + pattern BFF, cookie-only, aucun token dans le navigateur), déployée sur les 3 environnements (dev/rec/prod) — voir [Architecture technique](./05-architecture-technique.md).
 - **Test de charge** (Siege, `https://dev.julienforestier.pro`) : 913 transactions, **0 échec**, 0,49 s de temps de réponse moyen.
-- **Scan Kubescape** : 4 findings `High` détectés puis corrigés et validés en conditions réelles (0 redémarrage de pod, endpoint `/api/auth/register` fonctionnel après durcissement).
-- **Déploiement GitOps** : ArgoCD `Synced`/`Healthy` sur l'environnement `dev` après chaque fusion, self-heal vérifié en conditions réelles.
+- **Scan Kubescape** : 4 findings `High` détectés puis corrigés et validés en conditions réelles (0 redémarrage de pod, flow d'authentification fonctionnel après durcissement).
+- **Déploiement GitOps** : ArgoCD `Synced`/`Healthy` sur les environnements après chaque fusion, self-heal vérifié en conditions réelles.

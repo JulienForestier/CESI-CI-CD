@@ -6,6 +6,7 @@ import { PlaceholderImage } from '../components/PlaceholderImage'
 import { useAuth } from '../context/AuthContext'
 import { useListing } from '../hooks/useCatalog'
 import { useStartConversation } from '../hooks/useChat'
+import { usePurchaseListing } from '../hooks/usePurchases'
 
 const priceFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
 
@@ -15,7 +16,9 @@ export function ListingDetailPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const startConversation = useStartConversation()
+  const purchaseListing = usePurchaseListing()
   const [chatError, setChatError] = useState<string | null>(null)
+  const [purchaseError, setPurchaseError] = useState<string | null>(null)
 
   async function handleContactSeller(listingId: string) {
     if (!user) {
@@ -28,6 +31,20 @@ export function ListingDetailPage() {
       navigate(`/messages/${conversation.id}`)
     } catch (err) {
       setChatError(err instanceof ApiError ? err.message : "Impossible d'ouvrir la conversation.")
+    }
+  }
+
+  async function handlePurchase(listingId: string) {
+    if (!user) {
+      navigate('/connexion')
+      return
+    }
+    setPurchaseError(null)
+    try {
+      await purchaseListing.mutateAsync(listingId)
+      navigate('/mes-achats')
+    } catch (err) {
+      setPurchaseError(err instanceof ApiError ? err.message : "Impossible d'acheter cette annonce.")
     }
   }
 
@@ -69,6 +86,18 @@ export function ListingDetailPage() {
             <div className="font-ui text-sm font-bold">{listing.sellerDisplayName}</div>
             <div className="font-ui text-xs text-brown-2">Vendeur particulier</div>
           </div>
+
+          {listing.sellerId !== user?.userId && (
+            <button
+              type="button"
+              onClick={() => handlePurchase(listing.id)}
+              disabled={purchaseListing.isPending}
+              className="mt-4 w-full rounded-xl bg-ink py-3.5 font-ui text-sm font-semibold text-card disabled:opacity-50"
+            >
+              🛒 Acheter
+            </button>
+          )}
+          {purchaseError && <p className="mt-2 font-ui text-xs font-medium text-burnt">{purchaseError}</p>}
 
           {listing.sellerId !== user?.userId && (
             <button

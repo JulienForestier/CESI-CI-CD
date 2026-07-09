@@ -62,6 +62,7 @@ describe('Header', () => {
 
     expect(screen.getByTitle('Alice')).toHaveAttribute('href', '/profil')
     expect(screen.getByText('Mes annonces')).toBeInTheDocument()
+    expect(screen.getByText('Mes achats')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Modération' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Se déconnecter' })).not.toBeInTheDocument()
   })

@@ -6,8 +6,8 @@ Le projet mobilise six rôles distincts. Certains peuvent être portés par la m
 
 | Rôle | Responsabilité sur ce projet | Compétences mobilisées |
 |---|---|---|
-| **Lead Developer / Architecte** | Choix d'architecture (Kustomize/ArgoCD, PostgreSQL vs alternative, JWT custom vs Identity), arbitrages techniques, revue de code | Vision transverse back/front/infra, C#/.NET, TypeScript, conception d'API REST, Git/GitFlow |
-| **Développeur Backend** | API .NET 10 Minimal API, EF Core 10, migrations, endpoints auth/catalogue, tests xUnit | C#/.NET, EF Core, ASP.NET Core, JWT/`PasswordHasher`, xUnit, `WebApplicationFactory` |
+| **Lead Developer / Architecte** | Choix d'architecture (Kustomize/ArgoCD, PostgreSQL vs alternative, **auth maison vs serveur d'identité dédié → choix OpenID Connect / Duende**, pattern BFF), arbitrages techniques, revue de code | Vision transverse back/front/infra, C#/.NET, TypeScript, conception d'API REST, OAuth2/OIDC, Git/GitFlow |
+| **Développeur Backend** | API .NET 10 Minimal API, EF Core 10, migrations, service d'identité (Duende IdentityServer) + BFF, endpoints catalogue/chat/modération, tests xUnit | C#/.NET, EF Core, ASP.NET Core, **OpenID Connect (Duende IdentityServer + Duende.BFF), `PasswordHasher`**, xUnit, `WebApplicationFactory` |
 | **Développeur Frontend** | UI React 19, TanStack Query, React Hook Form + Zod, Tailwind CSS v4 | React, TypeScript, gestion d'état serveur (React Query), validation de formulaires, Vitest/Testing Library |
 | **Ingénieur DevOps / SRE** | Pipelines GitHub Actions, GitOps ArgoCD, Kustomize, cluster k3s, observabilité | YAML CI/CD, Kubernetes (Deployment, NetworkPolicy, Kustomize overlays), ArgoCD, Prometheus/Grafana, Loki |
 | **Ingénieur Sécurité / DevSecOps** | Intégration SAST/SCA/scan secrets/scan conteneurs/scan IaC, Sealed Secrets, cert-manager, durcissement `securityContext`, signature d'image | Semgrep/CodeQL/Trivy/Kubescape, PKI/TLS, Pod Security Standards, supply chain (cosign/Sigstore) |
