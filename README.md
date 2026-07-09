@@ -99,3 +99,5 @@ Détails : **[docs/livrables/03-cycle-vie-devsecops-pipeline.md](docs/livrables/
 ## Livrables pédagogiques
 
 L'ensemble des documents d'évaluation (indicateurs qualité, processus de test, cycle DevSecOps, architecture, backlog, expérimentation, plan de remédiation sécurité) est dans **[docs/livrables/](docs/livrables/README.md)**.
+
+Pense-bête pratique pour la soutenance (comptes de démo, commandes port-forward ArgoCD/Grafana/Prometheus, requêtes Loki) : **[docs/DEMO-GUIDE.md](docs/DEMO-GUIDE.md)**.
