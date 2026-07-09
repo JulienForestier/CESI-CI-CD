@@ -46,6 +46,11 @@ jobs:
               - 'api/**'
               - '!api/**/bin/**'
               - '!api/**/obj/**'
+              # L'IdentityService vit sous api/**, mais c'est un service distinct avec sa
+              # propre pipeline (identity-pipeline). On l'exclut donc du filtre api pour
+              # éviter qu'une modif purement identity ne relance aussi api-pipeline.
+              - '!api/CESI-CI-CD.IdentityService/**'
+              - '!api/CESI-CI-CD.IdentityService.Tests/**'
               - '.github/workflows/ci-api.yml'
               - '.github/workflows/code-quality-sast.yml'
               - '.github/workflows/ci-security.yml'
@@ -102,10 +107,16 @@ jobs:
     secrets: inherit
 
   code-quality-pipeline:
-    # SonarCloud (plan gratuit) n'analyse avec quality gate que la branche
-    # principale et les Pull Requests ; pas les push directs sur les
-    # branches feature/release.
-    if: github.event_name == 'pull_request'
+    # SonarCloud tourne sur toutes les PR (quality gate BLOQUANT) et sur les push
+    # des branches longues dev/main, pour rafraîchir l'analyse de branche du
+    # dashboard (sinon la note globale du projet reste figée entre deux PR, ce qui
+    # masque l'état réel). Sur push, le gate n'est PAS bloquant (voir l'étape
+    # "Quality Gate Check" de code-quality-sonar.yml) afin de ne pas empêcher le
+    # déploiement post-merge. Les push feature/release restent exclus (éphémères).
+    if: >
+      github.event_name == 'pull_request' ||
+      github.ref == 'refs/heads/dev' ||
+      github.ref == 'refs/heads/main'
     needs: detect-changes
     permissions:
       contents: read
