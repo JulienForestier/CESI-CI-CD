@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: application/collector-shop
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run ESLint
         working-directory: application/collector-shop
@@ -45,7 +45,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: application/collector-shop
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Run tests
         working-directory: application/collector-shop
@@ -74,7 +74,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: application/collector-shop
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: npm audit
         working-directory: application/collector-shop
@@ -97,7 +97,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: application/collector-shop
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build application
         working-directory: application/collector-shop
