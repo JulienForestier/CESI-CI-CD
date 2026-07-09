@@ -45,6 +45,9 @@ jobs:
   semgrep-frontend:
     name: Semgrep - Frontend
     if: inputs.front_changed == 'true'
+    permissions:
+      contents: read
+      security-events: write
     uses: ./.github/workflows/code-quality-sast.yml
     with:
       scan_path: application/collector-shop
@@ -55,6 +58,9 @@ jobs:
   semgrep-api:
     name: Semgrep - API
     if: inputs.api_changed == 'true'
+    permissions:
+      contents: read
+      security-events: write
     uses: ./.github/workflows/code-quality-sast.yml
     with:
       scan_path: api/CESI-CI-CD
