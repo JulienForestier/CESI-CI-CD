@@ -14,48 +14,49 @@ public static class InterestEndpoints
         var api = app.MapGroup(ApiRoutes.Interests.Base).RequireAuthorization();
         api.AsBffApiEndpoint();
 
-        api.MapGet("", async (ClaimsPrincipal user, CollectorShopDbContext db) =>
+        api.MapGet("", GetInterestsAsync);
+        api.MapPut("", UpdateInterestsAsync);
+    }
+
+    private static async Task<IResult> GetInterestsAsync(ClaimsPrincipal user, CollectorShopDbContext db)
+    {
+        if (user.GetUserId() is not { } userId)
         {
-            var userId = user.GetUserId();
-            if (userId is null)
-            {
-                return Results.Unauthorized();
-            }
+            return Results.Unauthorized();
+        }
 
-            var categoryIds = await db.Interests
-                .Where(i => i.UserId == userId)
-                .Select(i => i.CategoryId)
-                .ToListAsync();
+        var categoryIds = await db.Interests
+            .Where(i => i.UserId == userId)
+            .Select(i => i.CategoryId)
+            .ToListAsync();
 
-            return Results.Ok(categoryIds);
-        });
+        return Results.Ok(categoryIds);
+    }
 
-        api.MapPut("", async (UpdateInterestsRequest request, ClaimsPrincipal user, CollectorShopDbContext db) =>
+    private static async Task<IResult> UpdateInterestsAsync(UpdateInterestsRequest request, ClaimsPrincipal user, CollectorShopDbContext db)
+    {
+        if (user.GetUserId() is not { } userId)
         {
-            var userId = user.GetUserId();
-            if (userId is null)
-            {
-                return Results.Unauthorized();
-            }
+            return Results.Unauthorized();
+        }
 
-            var distinctCategoryIds = request.CategoryIds.Distinct().ToList();
-            var validCategoryCount = await db.Categories.CountAsync(c => distinctCategoryIds.Contains(c.Id));
-            if (validCategoryCount != distinctCategoryIds.Count)
-            {
-                return Results.BadRequest(new { message = "Une ou plusieurs catégories sont inconnues." });
-            }
+        var distinctCategoryIds = request.CategoryIds.Distinct().ToList();
+        var validCategoryCount = await db.Categories.CountAsync(c => distinctCategoryIds.Contains(c.Id));
+        if (validCategoryCount != distinctCategoryIds.Count)
+        {
+            return Results.BadRequest(new { message = "Une ou plusieurs catégories sont inconnues." });
+        }
 
-            var existing = await db.Interests.Where(i => i.UserId == userId).ToListAsync();
-            db.Interests.RemoveRange(existing);
+        var existing = await db.Interests.Where(i => i.UserId == userId).ToListAsync();
+        db.Interests.RemoveRange(existing);
 
-            foreach (var categoryId in distinctCategoryIds)
-            {
-                db.Interests.Add(new Interest { Id = Guid.NewGuid(), UserId = userId.Value, CategoryId = categoryId });
-            }
+        foreach (var categoryId in distinctCategoryIds)
+        {
+            db.Interests.Add(new Interest { Id = Guid.NewGuid(), UserId = userId, CategoryId = categoryId });
+        }
 
-            await db.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
-            return Results.NoContent();
-        });
+        return Results.NoContent();
     }
 }
