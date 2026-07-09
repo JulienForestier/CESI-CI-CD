@@ -1,12 +1,15 @@
+using System.Security.Claims;
 using System.Text.Json.Serialization;
 using CESI_CI_CD.ApiService.Data;
 using CESI_CI_CD.ApiService.Endpoints;
 using CESI_CI_CD.ApiService.Services;
 using Duende.Bff;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Yarp.ReverseProxy.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +72,15 @@ builder.Services.AddBff(options =>
             NameClaimType = "name",
         };
 
+        // Sans ceci, le claim "role" (custom, hors claims OIDC standard — voir CustomProfileService
+        // côté IdentityService) est bien présent dans la réponse de /connect/userinfo mais n'est
+        // jamais recopié dans le ClaimsPrincipal final : OpenIdConnectHandler ne mappe QUE les
+        // claims ayant une ClaimAction explicitement enregistrée (les claims standard comme
+        // "name"/"email" en ont une par défaut, pas les claims custom). Sans cette ligne, un
+        // utilisateur admin se connecte avec succès mais n'a jamais isAdmin=true côté frontend, et
+        // la policy "AdminOnly" rejette tous ses appels — silencieusement, sans erreur visible.
+        options.ClaimActions.Add(new JsonKeyClaimAction("role", ClaimValueTypes.String, "role"));
+
         // Sans ceci, le handler OIDC déduit le redirect_uri du Host de la requête entrante —
         // ce qui diverge de "Bff:Origin" (utilisé par IdentityService pour enregistrer le
         // client) dès qu'un proxy intermédiaire réécrit le Host (proxy Vite en dev local,
@@ -116,6 +128,53 @@ builder.Services.AddCors(options =>
         .AllowCredentials());
 });
 
+// Passerelle de dev locale : en k8s, l'ingress expose IdentityService et le front sur la même
+// origine publique qu'ApiService (/connect, /.well-known, /account, /login, /register,
+// /identity-assets → identityservice ; / → le pod front). "Bff:Origin" (voir OnRedirectToIdentityProvider
+// ci-dessous) suppose cette origine partagée — sans elle, la redirection OIDC vers
+// /connect/authorize atterrit sur une route inexistante d'ApiService. En local (Aspire), rien ne
+// joue ce rôle d'ingress : ApiService le fait donc lui-même en Development, en proxyant vers
+// IdentityService et vers le serveur de dev Vite du front. Inutile en Testing (pas d'OIDC réel
+// dans les tests d'intégration) ni en k8s (l'ingress s'en charge).
+if (builder.Environment.IsDevelopment())
+{
+    var identityAuthority = builder.Configuration["IdentityService:Authority"]
+        ?? throw new InvalidOperationException("Configuration 'IdentityService:Authority' manquante.");
+    // Port par défaut du serveur de dev Vite (npm run dev, voir application/collector-shop) —
+    // surchargeable via "Frontend:DevServerUrl" si besoin.
+    var frontendDevServerUrl = builder.Configuration["Frontend:DevServerUrl"] ?? "http://localhost:5173";
+    var originalHostTransform = new Dictionary<string, string> { ["RequestHeaderOriginalHost"] = "true" };
+
+    builder.Services.AddReverseProxy().LoadFromMemory(
+        [
+            new RouteConfig { RouteId = "identity-connect", ClusterId = "identity", Match = new RouteMatch { Path = "/connect/{**catch-all}" }, Transforms = [originalHostTransform] },
+            new RouteConfig { RouteId = "identity-wellknown", ClusterId = "identity", Match = new RouteMatch { Path = "/.well-known/{**catch-all}" }, Transforms = [originalHostTransform] },
+            new RouteConfig { RouteId = "identity-account", ClusterId = "identity", Match = new RouteMatch { Path = "/account/{**catch-all}" }, Transforms = [originalHostTransform] },
+            new RouteConfig { RouteId = "identity-login", ClusterId = "identity", Match = new RouteMatch { Path = "/login" }, Transforms = [originalHostTransform] },
+            new RouteConfig { RouteId = "identity-register", ClusterId = "identity", Match = new RouteMatch { Path = "/register" }, Transforms = [originalHostTransform] },
+            new RouteConfig { RouteId = "identity-assets", ClusterId = "identity", Match = new RouteMatch { Path = "/identity-assets/{**catch-all}" }, Transforms = [originalHostTransform] },
+            new RouteConfig { RouteId = "frontend-catchall", ClusterId = "frontend", Match = new RouteMatch { Path = "/{**catch-all}" } },
+        ],
+        [
+            new ClusterConfig
+            {
+                ClusterId = "identity",
+                Destinations = new Dictionary<string, DestinationConfig>
+                {
+                    ["identity"] = new DestinationConfig { Address = identityAuthority },
+                },
+            },
+            new ClusterConfig
+            {
+                ClusterId = "frontend",
+                Destinations = new Dictionary<string, DestinationConfig>
+                {
+                    ["frontend"] = new DestinationConfig { Address = frontendDevServerUrl },
+                },
+            },
+        ]);
+}
+
 var app = builder.Build();
 
 app.UseForwardedHeaders();
@@ -142,6 +201,11 @@ app.MapModerationEndpoints();
 app.MapInterestEndpoints();
 app.MapNotificationEndpoints();
 app.MapUserEndpoints();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapReverseProxy();
+}
 
 await app.RunAsync();
 
