@@ -142,6 +142,7 @@ app.MapModerationEndpoints();
 app.MapInterestEndpoints();
 app.MapNotificationEndpoints();
 app.MapUserEndpoints();
+app.MapPurchaseEndpoints();
 
 await app.RunAsync();
 
