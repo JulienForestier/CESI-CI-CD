@@ -113,7 +113,11 @@ jobs:
           fi
           echo "path=$REPORT_FILE" >> "$GITHUB_OUTPUT"
 
+      # Le gate ne bloque que sur les PR : sur un push dev/main, l'analyse a déjà été
+      # publiée (étape "End" ci-dessus, ce qui rafraîchit le dashboard) et un échec de
+      # gate post-merge ne doit pas faire échouer l'orchestrateur ni bloquer le déploiement.
       - name: SonarCloud Quality Gate Check
+        if: github.event_name == 'pull_request'
         uses: SonarSource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1
         timeout-minutes: 5
         with:
