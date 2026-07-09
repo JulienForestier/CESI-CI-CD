@@ -23,22 +23,24 @@ flowchart TD
         A["Push / Pull Request\n(feature/*, dev, release/*, main)"]
     end
 
-    A --> B["detect-changes\n(paths-filter front / api)"]
+    A --> B["detect-changes\n(paths-filter front / api / identity)"]
 
     B --> C1["front-pipeline\nLint, Unit Tests, Dependency Audit,\nBuild, Container Scan (Trivy)"]
     B --> C2["api-pipeline\nBuild, Tests, Dependency Audit,\nContainer Scan (Trivy)"]
+    B --> C2b["identity-pipeline\nLint + Tests (identity-ui),\n.NET Tests, Dependency Audit,\nContainer Scan (Trivy)"]
     B --> C3["security-pipeline\nSemgrep, CodeQL (JS/TS + C#),\nSecrets Scan (TruffleHog),\nOWASP Dependency-Check"]
-    B --> C4["code-quality-pipeline\n(PR uniquement)\nTests + couverture → SonarCloud\nQuality Gate"]
+    B --> C4["code-quality-pipeline\n(PR : gate bloquant ;\npush dev/main : analyse seule)\nTests + couverture → SonarCloud"]
 
     C1 --> D["status\ncommentaire récapitulatif sur la PR"]
     C2 --> D
+    C2b --> D
     C3 --> D
     C4 --> D
 
     D -->|"Required status checks\nOK → merge autorisé"| E["Merge dans dev / release/* / main"]
 
     E --> F["deploy.yml\n(déclenché par succès de CI - Orchestrator)"]
-    F --> G["build-and-push\nBuild + push images GHCR\n+ signature cosign (keyless/OIDC)"]
+    F --> G["build-and-push\nBuild + push des 3 images GHCR\n(front, api, identity)\n+ signature cosign (keyless/OIDC)"]
     G --> H["update-kubernetes\nkustomize edit set image\ncommit + push sur repo K8s (main)"]
     H --> I["ArgoCD\nauto-sync + self-heal"]
     I --> J["Cluster k3s (OVH)\nnamespace dev / rec / prod"]
