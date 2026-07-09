@@ -13,7 +13,12 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # On annule un run en cours seulement sur les Pull Requests (économie de runners
+  # quand on pousse plusieurs fois d'affilée sur une même PR). Sur les branches
+  # déployables (dev / release/* / main), chaque push doit aller au bout : un run
+  # annulé y ferait échouer l'orchestrateur (job "status" cancelled) et le
+  # déploiement, gated sur le succès de la CI, serait sauté.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
