@@ -6,6 +6,7 @@ import { PlaceholderImage } from '../components/PlaceholderImage'
 import { useAuth } from '../context/AuthContext'
 import { useListing } from '../hooks/useCatalog'
 import { useStartConversation } from '../hooks/useChat'
+import { useReportListing } from '../hooks/useReports'
 
 const priceFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
 
@@ -16,6 +17,11 @@ export function ListingDetailPage() {
   const navigate = useNavigate()
   const startConversation = useStartConversation()
   const [chatError, setChatError] = useState<string | null>(null)
+  const reportListing = useReportListing()
+  const [showReportForm, setShowReportForm] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportError, setReportError] = useState<string | null>(null)
+  const [reportSuccess, setReportSuccess] = useState(false)
 
   async function handleContactSeller(listingId: string) {
     if (!user) {
@@ -28,6 +34,18 @@ export function ListingDetailPage() {
       navigate(`/messages/${conversation.id}`)
     } catch (err) {
       setChatError(err instanceof ApiError ? err.message : "Impossible d'ouvrir la conversation.")
+    }
+  }
+
+  async function handleReport(listingId: string) {
+    setReportError(null)
+    try {
+      await reportListing.mutateAsync({ listingId, reason: reportReason })
+      setShowReportForm(false)
+      setReportReason('')
+      setReportSuccess(true)
+    } catch (err) {
+      setReportError(err instanceof ApiError ? err.message : "Impossible d'envoyer le signalement.")
     }
   }
 
@@ -84,6 +102,50 @@ export function ListingDetailPage() {
           <p className="mt-2 font-ui text-[11px] text-brown-2">
             🔒 Le partage de coordonnées personnelles n'est pas autorisé dans le chat.
           </p>
+
+          {user && listing.sellerId !== user.userId && (
+            <div className="mt-4">
+              {!showReportForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowReportForm(true)}
+                  className="font-ui text-xs font-medium text-brown-2 hover:text-burnt hover:underline"
+                >
+                  🚩 Signaler cette annonce
+                </button>
+              ) : (
+                <div className="flex flex-col gap-2 rounded-xl border-[1.5px] border-ink/20 bg-surface p-4">
+                  <textarea
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    placeholder="Motif du signalement…"
+                    className="rounded-lg border-[1.5px] border-ink bg-card px-3 py-2 font-ui text-sm text-ink"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleReport(listing.id)}
+                      disabled={reportListing.isPending || reportReason.trim().length === 0}
+                      className="rounded-lg bg-burnt px-4 py-2 font-ui text-sm font-semibold text-surface disabled:opacity-50"
+                    >
+                      Envoyer le signalement
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowReportForm(false)}
+                      className="rounded-lg border-[1.5px] border-ink/30 px-4 py-2 font-ui text-sm font-semibold text-brown-2"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
+              {reportError && <p className="mt-2 font-ui text-xs font-medium text-burnt">{reportError}</p>}
+              {reportSuccess && (
+                <p className="mt-2 font-ui text-xs font-medium text-teal">Signalement envoyé, merci.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
