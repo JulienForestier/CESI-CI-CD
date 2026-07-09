@@ -8,6 +8,7 @@ import { ApiError } from '../api/client'
 import * as authApi from '../api/auth'
 import * as catalogApi from '../api/catalog'
 import * as chatApi from '../api/chat'
+import * as reportsApi from '../api/reports'
 import { AuthProvider } from '../context/AuthContext'
 import { createTestQueryClient } from '../test/queryClient'
 import type { Listing } from '../types'
@@ -15,6 +16,7 @@ import type { Listing } from '../types'
 vi.mock('../api/auth')
 vi.mock('../api/catalog')
 vi.mock('../api/chat')
+vi.mock('../api/reports')
 
 const listing: Listing = {
   id: 'listing-1',
@@ -140,5 +142,62 @@ describe('ListingDetailPage', () => {
 
     await screen.findByText('Figurine rare')
     expect(screen.queryByRole('button', { name: '💬 Discuter avec le vendeur' })).not.toBeInTheDocument()
+  })
+
+  it('hides the report link for logged-out visitors', async () => {
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+
+    renderAt('listing-1')
+
+    await screen.findByText('Figurine rare')
+    expect(screen.queryByText('🚩 Signaler cette annonce')).not.toBeInTheDocument()
+  })
+
+  it('hides the report link for the listing owner', async () => {
+    loginAs('seller-1', 'Vendeur')
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+
+    renderAt('listing-1')
+
+    await screen.findByText('Figurine rare')
+    expect(screen.queryByText('🚩 Signaler cette annonce')).not.toBeInTheDocument()
+  })
+
+  it('submits a report and shows a confirmation message', async () => {
+    loginAsBuyer()
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+    vi.mocked(reportsApi.reportListing).mockResolvedValue({
+      id: 'report-1',
+      listingId: 'listing-1',
+      listingTitle: listing.title,
+      reporterId: 'buyer-1',
+      reporterDisplayName: 'Buyer',
+      reason: 'Contenu suspect',
+      details: null,
+      createdAt: new Date().toISOString(),
+    })
+
+    renderAt('listing-1')
+
+    await userEvent.click(await screen.findByText('🚩 Signaler cette annonce'))
+    await userEvent.type(screen.getByPlaceholderText('Motif du signalement…'), 'Contenu suspect')
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer le signalement' }))
+
+    expect(await screen.findByText('Signalement envoyé, merci.')).toBeInTheDocument()
+    expect(reportsApi.reportListing).toHaveBeenCalledWith('listing-1', 'Contenu suspect', undefined)
+  })
+
+  it('shows an error message when reporting fails', async () => {
+    loginAsBuyer()
+    vi.mocked(catalogApi.getListing).mockResolvedValue(listing)
+    vi.mocked(reportsApi.reportListing).mockRejectedValue(new ApiError(409, 'Vous avez déjà signalé cette annonce.'))
+
+    renderAt('listing-1')
+
+    await userEvent.click(await screen.findByText('🚩 Signaler cette annonce'))
+    await userEvent.type(screen.getByPlaceholderText('Motif du signalement…'), 'Contenu suspect')
+    await userEvent.click(screen.getByRole('button', { name: 'Envoyer le signalement' }))
+
+    expect(await screen.findByText('Vous avez déjà signalé cette annonce.')).toBeInTheDocument()
   })
 })

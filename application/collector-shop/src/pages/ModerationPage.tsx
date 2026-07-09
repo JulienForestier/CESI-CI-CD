@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { ApiError } from '../api/client'
 import { useApproveListing, usePendingListings, useRejectListing } from '../hooks/useModeration'
+import { useReports } from '../hooks/useReports'
 import type { Listing } from '../types'
 
 const priceFormatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
+const dateFormatter = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
 
 export function ModerationPage() {
   const pendingQuery = usePendingListings()
@@ -27,6 +29,54 @@ export function ModerationPage() {
       <div className="flex flex-col gap-4">
         {listings.map((listing) => (
           <ModerationCard key={listing.id} listing={listing} />
+        ))}
+      </div>
+
+      <ReportsSection />
+    </div>
+  )
+}
+
+function ReportsSection() {
+  const [search, setSearch] = useState('')
+  const reportsQuery = useReports(search || undefined)
+  const reports = reportsQuery.data ?? []
+
+  return (
+    <div className="mt-12 border-t border-ink/10 pt-8">
+      <h2 className="mb-2 font-display text-2xl">Signalements</h2>
+      <p className="mb-4 font-ui text-sm text-brown-2">
+        {reports.length} signalement(s){search ? ' correspondant à la recherche' : ''}.
+      </p>
+
+      <input
+        type="search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Rechercher dans les motifs…"
+        className="mb-4 w-full max-w-sm rounded-lg border-[1.5px] border-ink bg-surface px-3 py-2 font-ui text-sm text-ink"
+      />
+
+      {reportsQuery.isPending && <p className="font-ui text-brown-2">Chargement…</p>}
+      {reportsQuery.isError && <p className="font-ui text-burnt">Impossible de charger les signalements.</p>}
+      {reportsQuery.isSuccess && reports.length === 0 && (
+        <p className="font-ui text-brown-2">Aucun signalement à traiter.</p>
+      )}
+
+      <div className="flex flex-col gap-3">
+        {reports.map((report) => (
+          <div key={report.id} className="rounded-xl border-[1.5px] border-ink/15 bg-surface p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="font-display text-lg">{report.listingTitle}</div>
+                <div className="font-ui text-xs text-brown-2">
+                  Signalé par {report.reporterDisplayName} · {dateFormatter.format(new Date(report.createdAt))}
+                </div>
+              </div>
+            </div>
+            <p className="mt-2 font-ui text-sm font-semibold text-burnt">{report.reason}</p>
+            {report.details && <p className="mt-1 font-body text-sm text-brown-1">{report.details}</p>}
+          </div>
         ))}
       </div>
     </div>
