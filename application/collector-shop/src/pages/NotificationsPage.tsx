@@ -5,12 +5,14 @@ const TYPE_ICONS: Record<NotificationType, string> = {
   NewListingMatch: '🆕',
   ListingApproved: '✅',
   ListingRejected: '⚠️',
+  ListingSold: '🛒',
 }
 
 const TYPE_BORDER_CLASSES: Record<NotificationType, string> = {
   NewListingMatch: 'border-l-burnt',
   ListingApproved: 'border-l-teal',
   ListingRejected: 'border-l-burnt',
+  ListingSold: 'border-l-teal',
 }
 
 const dateFormatter = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
