@@ -20,9 +20,11 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md rounded-2xl border-[1.5px] border-ink/15 bg-card p-10 text-center">
-      <span className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-full border-2 border-ink font-display text-xl">
-        C
-      </span>
+      <span
+        role="status"
+        aria-label="Redirection en cours"
+        className="mx-auto mb-5 block h-11 w-11 animate-spin rounded-full border-[3px] border-ink/15 border-t-ink"
+      />
       <h1 className="font-display text-3xl">Bon retour parmi nous</h1>
       <p className="mt-1.5 mb-7 font-ui text-sm text-brown-2">Redirection vers la connexion…</p>
 
