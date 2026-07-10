@@ -45,6 +45,8 @@ flowchart TD
     H --> I["ArgoCD\nauto-sync + self-heal"]
     I --> J["Cluster k3s (OVH)\nnamespace dev / rec / prod"]
 
+    F --> K["load-test.yml\n(déclenché par succès de Build & Deploy)\nSiege, 15 users / 30s\nnon bloquant, résumé + artefact"]
+
     style TRIGGER fill:#f2e9d8,stroke:#29211b
     style D fill:#e4ece8,stroke:#2f5d55
     style J fill:#f6e3d6,stroke:#c25a2b
@@ -58,4 +60,4 @@ flowchart TD
 | SonarCloud (Quality Gate) | `code-quality-pipeline` | Couverture + ratings reliability/security/maintainability (indicateurs 1 et 2) |
 | Trivy, Semgrep, CodeQL, Dependency-Check, TruffleHog | `security-pipeline`, `*-pipeline / Container Scan` | Alimentent le [plan de remédiation sécurité](./08-plan-remediation-securite.md) |
 | Kubescape | Workflow dédié (repo Kubernetes) | Alimente le plan de remédiation (posture IaC) |
-| Siege | Manuel | Temps de réponse / disponibilité (indicateurs 3 et 4) |
+| Siege | `load-test.yml` (déclenché après chaque déploiement) | Temps de réponse / disponibilité (indicateurs 3 et 4) |

@@ -13,7 +13,7 @@
 | **Scan de secrets** | Détecter des identifiants/clés commis par erreur | TruffleHog | Chaque push / PR | Security champion |
 | **Scan de conteneurs** | Détecter les CVE dans les images Docker construites | Trivy | Chaque push / PR (avant déploiement) | DevOps / Security champion |
 | **Scan d'infrastructure (IaC)** | Détecter les mauvaises pratiques Kubernetes | Kubescape | Chaque push / PR sur le dépôt Kubernetes | DevOps |
-| **Charge** | Mesurer temps de réponse et taux d'échec sous concurrence | Siege | Manuel, à la demande / en soutenance | DevOps / Lead Dev |
+| **Charge** | Mesurer temps de réponse et taux d'échec sous concurrence | Siege | Automatique après chaque déploiement (`load-test.yml`), sur les 3 environnements | DevOps / Lead Dev |
 
 Le pipeline applique donc **plus des deux types de tests minimum exigés**, avec au moins deux catégories exécutées automatiquement et bloquantes (unitaire + intégration côté fonctionnel, SAST + SCA côté sécurité).
 
@@ -30,4 +30,4 @@ Le pipeline applique donc **plus des deux types de tests minimum exigés**, avec
 - Le **Quality Gate SonarCloud** (couverture ≥ 80 % sur le code nouveau + notes A + duplication < 3 %) est une **règle de protection de branche GitHub** sur `dev` : une PR ne peut pas être fusionnée si le gate échoue, quel que soit l'avis du relecteur. L'analyse tourne aussi sur les push `dev`/`main` (en mode non-bloquant) pour maintenir le tableau de bord du projet à jour après chaque fusion.
 - Les scans de sécurité (Trivy, Semgrep, CodeQL, TruffleHog, Dependency-Check, Kubescape) sont exécutés à chaque PR ; un échec bloque également la fusion via les *required status checks*.
 - La détection de changements (`dorny/paths-filter`) n'exécute que les pipelines pertinents (`front` / `api` / `identity`), tandis que les scans de sécurité tournent systématiquement.
-- Le test de charge n'est **pas intégré au pipeline CI/CD** (non exigé par les consignes) : il est rejoué manuellement avant une démonstration ou une montée de version majeure, sur l'environnement `dev` réellement déployé.
+- Le test de charge (`load-test.yml`) se déclenche automatiquement après chaque déploiement réussi (`deploy.yml`), sur l'environnement réellement mis à jour (dev/rec/prod). Il reste **volontairement non bloquant** : les résultats sont publiés dans le résumé du job GitHub Actions et archivés en artefact, mais aucun seuil ne fait échouer le pipeline — cohérent avec le fait que ce test n'est pas exigé par les consignes, il sert d'indicateur de suivi dans le temps plutôt que de gate.
