@@ -81,11 +81,15 @@ jobs:
         run: |
           # Mêmes paramètres que la campagne manuelle de référence (voir docs/livrables/01-indicateurs-qualite.md) :
           # 15 utilisateurs concurrents, 30 secondes, sur un endpoint API réel (pas la page statique).
-          siege -c15 -t30S -H "X-CSRF: 1" "$BASE_URL/api/listings" > siege-output.raw.log 2>&1 || true
+          set +e
+          siege -c15 -t30S -H "X-CSRF: 1" "$BASE_URL/api/listings" > siege-output.raw.log 2>&1
+          SIEGE_RC=$?
+          set -e
+          echo "siege_exit_code=$SIEGE_RC" >> "$GITHUB_OUTPUT"
           # Siege écrit des codes couleur ANSI et des retours chariot (\r) en sortie non-interactive
           # (runner GitHub Actions) — on nettoie avant de parser, sinon le grep du résumé ne matche rien
           # alors que Siege a bien tourné.
-          sed -E 's/\x1b\[[0-9;]*m//g; s/\r//g' siege-output.raw.log > siege-output.log
+          sed -E 's/\x1b\[[0-9;]*m//g; s/\r/\n/g' siege-output.raw.log > siege-output.log
           cat siege-output.log
 
       - name: Publish summary
@@ -93,15 +97,25 @@ jobs:
         env:
           ENV_NAME: ${{ steps.target.outputs.env_name }}
           BASE_URL: ${{ steps.target.outputs.base_url }}
+          SIEGE_EXIT_CODE: ${{ steps.siege.outputs.siege_exit_code }}
         run: |
           {
             echo "## Test de charge (Siege) — $ENV_NAME"
             echo ""
             echo "Cible : \`$BASE_URL/api/listings\` — 15 utilisateurs concurrents, 30 secondes."
             echo ""
-            echo '```'
-            grep -a -A12 "Transactions:" siege-output.log || echo "Résultats indisponibles, voir les logs du job."
-            echo '```'
+            if grep -qa "Transactions:" siege-output.log; then
+              echo '```'
+              grep -a -A12 "Transactions:" siege-output.log
+              echo '```'
+            else
+              echo "**Résultats indisponibles** — diagnostic ci-dessous (code sortie siege: \`${SIEGE_EXIT_CODE:-inconnu}\`, \`$(wc -c < siege-output.raw.log)\` octets bruts, \`$(wc -c < siege-output.log)\` octets nettoyés)."
+              echo ""
+              echo "Dernières lignes brutes (avec caractères non imprimables visibles) :"
+              echo '```'
+              tail -c 2000 siege-output.raw.log | cat -A | tail -n 40
+              echo '```'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload full siege log
