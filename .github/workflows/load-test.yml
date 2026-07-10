@@ -107,9 +107,9 @@ jobs:
             # Selon la version de siege installée (varie avec le runner), le résumé sort soit en
             # JSON (clés minuscules, ex. "transactions": 802 — observé sur ubuntu-latest via apt),
             # soit au format texte classique ("Transactions:\t802 hits" — observé en local/Homebrew).
-            if sed -n '/^{$/,/^}$/p' siege-output.log | grep -qa '"transactions"'; then
+            if sed -n '/^{/,/^}$/p' siege-output.log | grep -qa '"transactions"'; then
               echo '```json'
-              sed -n '/^{$/,/^}$/p' siege-output.log
+              sed -n '/^{/,/^}$/p' siege-output.log
               echo '```'
             elif grep -qa "Transactions:" siege-output.log; then
               echo '```'
