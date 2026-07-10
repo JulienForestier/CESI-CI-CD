@@ -81,7 +81,11 @@ jobs:
         run: |
           # Mêmes paramètres que la campagne manuelle de référence (voir docs/livrables/01-indicateurs-qualite.md) :
           # 15 utilisateurs concurrents, 30 secondes, sur un endpoint API réel (pas la page statique).
-          siege -c15 -t30S -H "X-CSRF: 1" "$BASE_URL/api/listings" > siege-output.log 2>&1 || true
+          siege -c15 -t30S -H "X-CSRF: 1" "$BASE_URL/api/listings" > siege-output.raw.log 2>&1 || true
+          # Siege écrit des codes couleur ANSI et des retours chariot (\r) en sortie non-interactive
+          # (runner GitHub Actions) — on nettoie avant de parser, sinon le grep du résumé ne matche rien
+          # alors que Siege a bien tourné.
+          sed -E 's/\x1b\[[0-9;]*m//g; s/\r//g' siege-output.raw.log > siege-output.log
           cat siege-output.log
 
       - name: Publish summary
@@ -96,7 +100,7 @@ jobs:
             echo "Cible : \`$BASE_URL/api/listings\` — 15 utilisateurs concurrents, 30 secondes."
             echo ""
             echo '```'
-            grep -A12 "^Transactions:" siege-output.log || echo "Résultats indisponibles, voir les logs du job."
+            grep -a -A12 "Transactions:" siege-output.log || echo "Résultats indisponibles, voir les logs du job."
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
