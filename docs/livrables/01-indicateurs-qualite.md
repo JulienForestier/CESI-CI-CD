@@ -24,9 +24,9 @@ Quatre indicateurs ont été retenus pour couvrir les quatre axes de qualité lo
 
 | | |
 |---|---|
-| **Outil** | Siege (test de charge manuel sur l'environnement `dev` déployé) |
+| **Outil** | Siege — automatisé (`load-test.yml`), déclenché après chaque déploiement réussi sur l'environnement réellement mis à jour (dev/rec/prod) |
 | **Seuil indicatif** | Temps de réponse moyen < 1 s, taux d'échec = 0 % à 15 utilisateurs concurrents |
-| **Mesure constatée** | 913 transactions, **0 échec**, temps de réponse moyen **0,49 s**, débit 29,81 trans/s (voir [Architecture technique](./05-architecture-technique.md) et section démonstration) |
+| **Mesure constatée** | Mesure de référence (campagne manuelle initiale, `dev`) : 913 transactions, **0 échec**, temps de réponse moyen **0,49 s**, débit 29,81 trans/s (voir [Architecture technique](./05-architecture-technique.md) et section démonstration). Rejouée automatiquement à chaque déploiement depuis, résultats publiés dans le résumé du job GitHub Actions et archivés en artefact (30 jours). |
 | **Lien avec la dette technique** | Un temps de réponse qui se dégrade progressivement d'une version à l'autre est un signal de dette de performance (requêtes N+1, absence d'index, fuite mémoire). Rejouer ce test à chaque montée de version majeure permet de détecter cette dérive avant qu'elle n'affecte les utilisateurs, plutôt que de la découvrir en production. |
 
 ## 4. Disponibilité applicative (santé des probes Kubernetes) — *Fiabilité*
@@ -44,7 +44,7 @@ Quatre indicateurs ont été retenus pour couvrir les quatre axes de qualité lo
 |---|---|---|---|---|
 | Couverture new code | Maintenabilité | SonarCloud | ≥ 80 % | Oui (Quality Gate + branch protection) |
 | Ratings Sonar (reliability/security/maintainability) | Fiabilité / Maintenabilité | SonarCloud | A partout | Oui (Quality Gate) |
-| Temps de réponse sous charge | Performance | Siege | < 1 s, 0 % échec | Non (mesure manuelle en soutenance) |
+| Temps de réponse sous charge | Performance | Siege | < 1 s, 0 % échec | Non (automatique après déploiement, résultats informatifs) |
 | Disponibilité des pods | Fiabilité | Probes K8s + ArgoCD | 0 restart, Healthy | Non (supervision continue) |
 
 Les deux premiers indicateurs sont **bloquants dans le pipeline CI** (voir [Processus de test](./02-processus-test.md)) : ils empêchent mécaniquement la fusion d'une régression. Les deux derniers sont mesurés lors des déploiements et de la démonstration ; ils justifient les choix d'architecture (probes, ressources, GitOps auto-heal) documentés dans le [schéma d'architecture](./05-architecture-technique.md).

@@ -65,6 +65,13 @@ gh run list --branch feature/report-listing-sql-injection --limit 3
 gh run view <run-id>   # détail d'un run (logs, jobs, conclusion)
 ```
 
+## Test de charge automatique (Siege)
+
+Depuis `load-test.yml`, un test de charge (15 utilisateurs concurrents, 30 secondes, sur `/api/listings`) se déclenche automatiquement après chaque déploiement réussi, sur l'environnement réellement mis à jour. Non bloquant — purement informatif.
+
+- Runs : https://github.com/JulienForestier/CESI-CI-CD/actions/workflows/load-test.yml
+- Résultats visibles directement dans le résumé du run (onglet "Summary"), plus le log complet en artefact téléchargeable (conservé 30 jours).
+
 ## Commandes Kubernetes
 
 ```bash

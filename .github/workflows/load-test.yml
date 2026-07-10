@@ -1,0 +1,109 @@
+name: Load Test (Siege)
+
+# Se déclenche après chaque déploiement réussi (voir deploy.yml), sur l'environnement
+# réellement mis à jour. Purement informatif : ne fait jamais échouer le pipeline
+# (le run peut être rouge uniquement si Siege lui-même ne peut pas s'exécuter).
+on:
+  workflow_run:
+    workflows:
+      - Build & Deploy
+    types:
+      - completed
+
+concurrency:
+  group: load-test-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  load-test:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Determine target environment
+        id: target
+        env:
+          BRANCH_NAME: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          if [[ "$BRANCH_NAME" == "dev" ]]; then
+            ENV_NAME="dev"
+            BASE_URL="https://dev.julienforestier.pro"
+          elif [[ "$BRANCH_NAME" == release/* ]]; then
+            ENV_NAME="rec"
+            BASE_URL="https://rec.julienforestier.pro"
+          elif [[ "$BRANCH_NAME" == "main" ]]; then
+            ENV_NAME="prod"
+            BASE_URL="https://julienforestier.pro"
+          else
+            echo "::error::Unsupported branch for load test: $BRANCH_NAME"
+            exit 1
+          fi
+
+          echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
+          echo "base_url=$BASE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for rollout (ArgoCD sync + pods Ready)
+        env:
+          BASE_URL: ${{ steps.target.outputs.base_url }}
+        run: |
+          # ArgoCD (auto-sync) réconcilie par défaut sous 3 min après le push sur le dépôt
+          # Kubernetes — on attend 3 réponses saines d'affilée avant de lancer la charge, pour
+          # éviter de tester des pods encore en cours de rollout.
+          ok_streak=0
+          for i in $(seq 1 40); do
+            code=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 5 -H "X-CSRF: 1" "$BASE_URL/api/categories" || echo "000")
+            if [[ "$code" == "200" ]]; then
+              ok_streak=$((ok_streak + 1))
+            else
+              ok_streak=0
+            fi
+            echo "tentative $i : HTTP $code (streak=$ok_streak)"
+            if [[ "$ok_streak" -ge 3 ]]; then
+              echo "Environnement disponible, lancement du test de charge."
+              break
+            fi
+            sleep 10
+          done
+
+          if [[ "$ok_streak" -lt 3 ]]; then
+            echo "::warning::$BASE_URL n'a pas confirmé sa disponibilité après l'attente maximale — le test de charge tourne quand même, les résultats peuvent être faussés."
+          fi
+
+      - name: Install siege
+        run: sudo apt-get update -y && sudo apt-get install -y siege
+
+      - name: Run load test
+        id: siege
+        continue-on-error: true
+        env:
+          BASE_URL: ${{ steps.target.outputs.base_url }}
+        run: |
+          # Mêmes paramètres que la campagne manuelle de référence (voir docs/livrables/01-indicateurs-qualite.md) :
+          # 15 utilisateurs concurrents, 30 secondes, sur un endpoint API réel (pas la page statique).
+          siege -c15 -t30S -H "X-CSRF: 1" "$BASE_URL/api/listings" > siege-output.log 2>&1 || true
+          cat siege-output.log
+
+      - name: Publish summary
+        if: always()
+        env:
+          ENV_NAME: ${{ steps.target.outputs.env_name }}
+          BASE_URL: ${{ steps.target.outputs.base_url }}
+        run: |
+          {
+            echo "## Test de charge (Siege) — $ENV_NAME"
+            echo ""
+            echo "Cible : \`$BASE_URL/api/listings\` — 15 utilisateurs concurrents, 30 secondes."
+            echo ""
+            echo '```'
+            grep -A12 "^Transactions:" siege-output.log || echo "Résultats indisponibles, voir les logs du job."
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload full siege log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: siege-log-${{ steps.target.outputs.env_name }}-${{ github.event.workflow_run.head_sha }}
+          path: siege-output.log
+          retention-days: 30
