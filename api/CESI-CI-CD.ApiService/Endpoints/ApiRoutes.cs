@@ -64,6 +64,14 @@ public static class ApiRoutes
         public const string MarkAllRead = $"{Base}/mark-all-read";
     }
 
+    public static class Reports
+    {
+        public const string ReportTemplate = $"{Catalog.Base}/listings/{{id:guid}}/report";
+        public const string AdminList = $"{Moderation.Base}/reports";
+
+        public static string Report(Guid listingId) => $"{Catalog.Base}/listings/{listingId}/report";
+    }
+
     public static class Purchases
     {
         public const string PurchaseTemplate = $"{Catalog.Base}/listings/{{id:guid}}/purchase";

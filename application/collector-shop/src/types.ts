@@ -52,6 +52,17 @@ export interface AppNotification {
   listingId: string | null
 }
 
+export interface Report {
+  id: string
+  listingId: string
+  listingTitle: string
+  reporterId: string
+  reporterDisplayName: string
+  reason: string
+  details: string | null
+  createdAt: string
+}
+
 export interface UserProfile {
   id: string
   email: string
