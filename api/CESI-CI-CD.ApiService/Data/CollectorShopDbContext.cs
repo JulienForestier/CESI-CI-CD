@@ -13,6 +13,7 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Interest> Interests => Set<Interest>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Report> Reports => Set<Report>();
     public DbSet<Purchase> Purchases => Set<Purchase>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -123,6 +124,22 @@ public class CollectorShopDbContext(DbContextOptions<CollectorShopDbContext> opt
             .WithMany()
             .HasForeignKey(n => n.ListingId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Report>()
+            .HasIndex(r => new { r.ListingId, r.ReporterId })
+            .IsUnique();
+
+        modelBuilder.Entity<Report>()
+            .HasOne(r => r.Listing)
+            .WithMany()
+            .HasForeignKey(r => r.ListingId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Report>()
+            .HasOne(r => r.Reporter)
+            .WithMany()
+            .HasForeignKey(r => r.ReporterId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Purchase>()
             .HasOne(p => p.Listing)

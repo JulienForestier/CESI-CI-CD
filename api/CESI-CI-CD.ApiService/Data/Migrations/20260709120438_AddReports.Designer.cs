@@ -3,6 +3,7 @@ using System;
 using CESI_CI_CD.ApiService.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CESICICD.ApiService.Data.Migrations
 {
     [DbContext(typeof(CollectorShopDbContext))]
-    partial class CollectorShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260709120438_AddReports")]
+    partial class AddReports
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -144,10 +147,6 @@ namespace CESICICD.ApiService.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CategoryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAt")
@@ -282,41 +281,6 @@ namespace CESICICD.ApiService.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Reports");
-                });
-
-            modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Purchase", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BuyerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("CommissionAmount")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("numeric");
-
-                    b.Property<Guid>("SellerId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuyerId");
-
-                    b.HasIndex("ListingId");
-
-                    b.HasIndex("SellerId");
-
-                    b.ToTable("Purchases");
                 });
 
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.User", b =>
@@ -492,33 +456,6 @@ namespace CESICICD.ApiService.Data.Migrations
                     b.Navigation("Listing");
 
                     b.Navigation("Reporter");
-                });
-
-            modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Purchase", b =>
-                {
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.User", "Buyer")
-                        .WithMany()
-                        .HasForeignKey("BuyerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.Listing", "Listing")
-                        .WithMany()
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CESI_CI_CD.ApiService.Data.Entities.User", "Seller")
-                        .WithMany()
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Buyer");
-
-                    b.Navigation("Listing");
-
-                    b.Navigation("Seller");
                 });
 
             modelBuilder.Entity("CESI_CI_CD.ApiService.Data.Entities.Category", b =>
